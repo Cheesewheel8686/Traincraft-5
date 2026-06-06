@@ -24,7 +24,7 @@ public enum BlockIDs implements IBlockIDs {
 	//book(true, ItemBlockBook.class),
 
 	trainWorkbench(false, null),
-	trainDetector(false, null),
+	trainDetector(ItemBlockTrainDetector.class),
 
 	stopper(false, null),
 	embeddedStopper(false, null),
@@ -122,6 +122,12 @@ public enum BlockIDs implements IBlockIDs {
 	public Class itemBlockClass;
 
 	private final int MaxMetaData;
+
+	BlockIDs(Class<? extends ItemBlock> itemBlockClass) {
+		this.hasItemBlock = true;
+		this.itemBlockClass = itemBlockClass;
+		MaxMetaData = -1;
+	}
 
 	BlockIDs(boolean hasItemBlock, Class<? extends ItemBlock> itemBlockClass) {
 		this.hasItemBlock = hasItemBlock;
