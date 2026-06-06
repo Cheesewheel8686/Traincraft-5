@@ -6,7 +6,6 @@ import com.mojang.authlib.GameProfile;
 import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.network.ByteBufUtils;
-import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
@@ -58,11 +57,10 @@ import train.common.library.ItemIDs;
 import train.common.library.register.ITrainRecord;
 import train.common.tile.TileTCRail;
 import train.common.tile.TileTCRailGag;
+import train.common.tile.TileTrainDetector;
 import train.common.utils.devutils.DebugUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static train.common.core.util.TraincraftUtil.degrees;
 import static train.common.core.util.TraincraftUtil.isRailBlockAt;
@@ -166,6 +164,7 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 	private double derailSpeed = 0.46;
 	private int scrollPosition;
 	public TileTCRail lastTrack=null;
+	private LinkedList<TileTrainDetector> activeDetectors = new LinkedList<>();
 
 	public JsonObject renderRefs = new JsonObject();
 
@@ -529,6 +528,10 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 			bogieLoco.setDead();
 			bogieLoco.isDead = true;
 		}
+		for (TileTrainDetector detector : activeDetectors) {
+			detector.removeEntity(this);
+		}
+		activeDetectors.clear();
 		isDead = true;
 		Side side = FMLCommonHandler.instance().getEffectiveSide();
 		if (side == Side.CLIENT) {
@@ -1288,6 +1291,7 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 				return;
 			}
 
+			handleTrainDetector(tileRail);
 
 			if (ItemTCRail.isTCTurnTrack(tileRail))
 			{
@@ -1340,8 +1344,53 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 				moveOnTCDiamondCrossing(floor_posX, floor_posY, floor_posZ, tileRail.xCoord, tileRail.yCoord, tileRail.zCoord, tileRail.getBlockMetadata());
 			}
 		}
-		else {
+		else { // If we are not on a rail…
+			// Remove any active detectors if derailed.
+			if (!activeDetectors.isEmpty()) {
+				removeObsoleteDetectors(new LinkedList<>());
+			}
 			super.onUpdate();
+		}
+	}
+
+	/**
+	 * @author 02skaplan
+	 * @author broscolotos
+	 * @param tileRail Rail tile currently being traversed.
+	 */
+	private void handleTrainDetector(TileTCRail tileRail) {
+		tileRail = tileRail.getGreatestParent(worldObj);
+		// Check if the track has any linked Train Detectors.
+		LinkedList<TileTrainDetector> trackPairedDetectors = tileRail.getPairedDetectors();
+		if (!trackPairedDetectors.isEmpty()) {
+			for (TileTrainDetector detector : trackPairedDetectors) {
+				// Check for new detectors.
+				if (!activeDetectors.contains(detector)) {
+					// Add entity to the new detector.
+					detector.addEntity(this);
+					activeDetectors.add(detector);
+				}
+			}
+			removeObsoleteDetectors(trackPairedDetectors);
+		} else if (!activeDetectors.isEmpty()){ // Remove all active detectors when we move to a track that doesn't have any detectors.
+			removeObsoleteDetectors(trackPairedDetectors);
+		}
+	}
+
+	/**
+	 * @author 02skaplan
+	 * @author broscolotos
+	 */
+	private void removeObsoleteDetectors(LinkedList<TileTrainDetector> trackPairedDetectors) {
+		Iterator<TileTrainDetector> detectorIterator = activeDetectors.iterator();
+		TileTrainDetector detector;
+		// Remove and mark as obsolete any old detectors.
+		while (detectorIterator.hasNext()) {
+			detector = detectorIterator.next();
+			if (!trackPairedDetectors.contains(detector)) {
+				detector.removeEntity(this);
+				detectorIterator.remove();
+			}
 		}
 	}
 
@@ -2770,7 +2819,7 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 	public void setParkingBrake(boolean status) {
 		this.parkingBrake = status;
 		Traincraft.brakeChannel.sendToAllAround(new PacketParkingBrake(false, getEntityId()),
-				new NetworkRegistry.TargetPoint(worldObj.provider.dimensionId, posX, posY, posZ, 300.0D));
+				new TargetPoint(worldObj.provider.dimensionId, posX, posY, posZ, 300.0D));
 	}
 
 	public double convertSpeed(double speed)
@@ -2797,4 +2846,12 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 	{
 		return dataWatcher.getWatchableObjectInt(25);
 	}
+
+    public LinkedList<TileTrainDetector> getActiveDetectors() {
+        return activeDetectors;
+    }
+
+    public void setActiveDetectors(LinkedList<TileTrainDetector> activeDetectors) {
+        this.activeDetectors = activeDetectors;
+    }
 }

@@ -8,8 +8,10 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.IBlockAccess;
@@ -17,7 +19,9 @@ import net.minecraft.world.World;
 import train.common.Traincraft;
 import train.common.library.BlockIDs;
 import train.common.library.Info;
+import train.common.tile.TileTCRail;
 import train.common.tile.TileTCRailGag;
+import train.common.tile.TileTrainDetector;
 
 import java.util.Random;
 
@@ -29,6 +33,43 @@ public class BlockTCRailGag extends Block {
 		super(Material.anvil);
 		setCreativeTab(Traincraft.tcTab);
 		this.setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 0.125F, 1.0F);
+	}
+
+	@Override
+	public boolean onBlockActivated(World world, int blockX, int blockY, int blockZ, EntityPlayer player, int par6, float par7, float par8, float par9) {
+		TileEntity te = world.getTileEntity(blockX, blockY, blockZ);
+		int l = world.getBlockMetadata(blockX, blockY, blockZ);
+
+		if ((te instanceof TileTCRailGag) && player != null) {
+			NBTTagCompound entityData = player.getEntityData();
+			if (entityData.hasKey("TC_Train_Detector_Pairing")) { // If player is pairing track to detector…
+				TileTCRailGag tileTCRailGag = ((TileTCRailGag) te);
+				TileEntity possibleTileTCRail = world.getTileEntity(tileTCRailGag.originX, tileTCRailGag.originY, tileTCRailGag.originZ);
+				if (possibleTileTCRail instanceof TileTCRail) {
+					TileTCRail tileTCRail = ((TileTCRail) possibleTileTCRail);
+					int detectorX = entityData.getInteger("TC_Train_Detector_BlockX");
+					int detectorY = entityData.getInteger("TC_Train_Detector_BlockY");
+					int detectorZ = entityData.getInteger("TC_Train_Detector_BlockZ");
+					tileTCRail = tileTCRail.getGreatestParent(world);
+					TileEntity tilePossibleDetector = world.getTileEntity(detectorX, detectorY, detectorZ);
+					if (tilePossibleDetector instanceof TileTrainDetector) {
+						TileTrainDetector trainDetector = (TileTrainDetector) tilePossibleDetector;
+						if (!trainDetector.getPairedTrack().contains(tileTCRail)) {
+							trainDetector.getPairedTrack().add(tileTCRail);
+							tileTCRail.getPairedDetectors().add(trainDetector);
+							if (!world.isRemote)
+								player.addChatComponentMessage(new ChatComponentText("Added track."));
+							entityData.setInteger("TC_Train_Detector_Pairing", entityData.getInteger("TC_Train_Detector_Pairing") + 1);
+						} else {
+							if (!world.isRemote)
+								player.addChatComponentMessage(new ChatComponentText("Track already added."));
+						}
+					}
+				}
+			}
+			//((TileTCRail)te).printInfo();
+		}
+		return false;
 	}
 
 	/**

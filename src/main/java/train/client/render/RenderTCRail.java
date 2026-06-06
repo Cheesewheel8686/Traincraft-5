@@ -1,6 +1,8 @@
 package train.client.render;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import train.client.render.models.blocks.track.ModelSlopeTCTrack;
 import train.client.render.models.blocks.track.crossing.ModelLeftDiamondCrossing;
@@ -21,6 +23,7 @@ import train.client.render.models.blocks.track.turn.degree90.ModelRightTurnTCTra
 import train.common.items.BallastTypes;
 import train.common.library.track.ITrackDefinition;
 import train.common.tile.TileTCRail;
+import train.common.tile.TileTrainDetector;
 
 public class RenderTCRail extends TileEntitySpecialRenderer {
 
@@ -67,6 +70,10 @@ public class RenderTCRail extends TileEntitySpecialRenderer {
 			
 			if (railTile.hasModel && railTile.getTrackType() != null)
 			{
+				NBTTagCompound entityData = Minecraft.getMinecraft().thePlayer.getEntityData();
+				// Render blinking if player is pairing track with a detector…
+				if (handleTileBlinking(entityData, railTile))
+					return;
 				ITrackDefinition track = railTile.getTrackType();
 				switch (track.getCoreTrack())
 				{
@@ -399,7 +406,26 @@ public class RenderTCRail extends TileEntitySpecialRenderer {
 						//}
 					}
 				}
+
 			}
 		}
+	}
+
+	private boolean handleTileBlinking(NBTTagCompound entityData, TileTCRail railTile) {
+		if (entityData.hasKey("TC_Train_Detector_Pairing")) {
+			// Get the detector that we are pairing with.
+			int detectorX = entityData.getInteger("TC_Train_Detector_BlockX");
+			int detectorY = entityData.getInteger("TC_Train_Detector_BlockY");
+			int detectorZ = entityData.getInteger("TC_Train_Detector_BlockZ");
+			TileEntity possibleTrainDetector = Minecraft.getMinecraft().thePlayer.worldObj.getTileEntity(detectorX, detectorY, detectorZ);
+			if (possibleTrainDetector instanceof TileTrainDetector) {
+				TileTrainDetector detector = ((TileTrainDetector) possibleTrainDetector);
+				TileTCRail parent = railTile.getGreatestParent(Minecraft.getMinecraft().theWorld);
+				if (detector.getPairedTrack().contains(parent)) {
+                    return Minecraft.getMinecraft().thePlayer.ticksExisted % 20 < 10;
+				}
+			}
+		}
+		return false;
 	}
 }

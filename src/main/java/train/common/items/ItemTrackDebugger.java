@@ -56,6 +56,7 @@ public class ItemTrackDebugger extends Item
                 player.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD + "LinkedX: "    +  EnumChatFormatting.WHITE +  tile.linkedX + EnumChatFormatting.GOLD +  " LinkedY: " +  EnumChatFormatting.WHITE +tile.linkedY +  EnumChatFormatting.GOLD + " LinkedZ: "+  EnumChatFormatting.WHITE + tile.linkedZ));
                 player.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD + "SlopeLength: "    +  EnumChatFormatting.WHITE +  tile.slopeLength + EnumChatFormatting.GOLD +  " SlopeHeight: " +  EnumChatFormatting.WHITE +  EnumChatFormatting.GOLD + " SlopeAngle: "+  EnumChatFormatting.WHITE + tile.slopeAngle));
                 player.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD + "BallastMaterial: "    +  EnumChatFormatting.WHITE +  Block.getBlockById(tile.getBallastMaterial()).getLocalizedName() + EnumChatFormatting.GOLD +  " BallastMetadata: " +  EnumChatFormatting.WHITE +tile.ballastMetadata +  EnumChatFormatting.GOLD + " BallastColour: "+  EnumChatFormatting.WHITE + tile.ballastColour));
+                player.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD + "Number of paired detectors: "    +  EnumChatFormatting.WHITE +  tile.getPairedDetectors().size()));
                 player.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD + "Track Owner: " + EnumChatFormatting.WHITE + tile.getOwnerUUID()));
                 player.addChatMessage(new ChatComponentText(" "));
             }

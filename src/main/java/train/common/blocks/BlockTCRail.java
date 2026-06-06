@@ -9,8 +9,10 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
@@ -21,6 +23,7 @@ import train.common.library.BlockIDs;
 import train.common.library.Info;
 import train.common.library.track.EnumTracks;
 import train.common.tile.TileTCRail;
+import train.common.tile.TileTrainDetector;
 
 import java.util.Random;
 
@@ -67,6 +70,14 @@ public class BlockTCRail extends Block {
 	@Override
 	public void breakBlock(World world, int i, int j, int k, Block par5, int par6) {
 		TileTCRail tileEntity = (TileTCRail) world.getTileEntity(i, j, k);
+
+		// Check if track is paired to any detectors. If so, unpair it before breaking.
+		if (tileEntity != null && !tileEntity.getPairedDetectors().isEmpty()) {
+			for (TileTrainDetector trainDetector : tileEntity.getPairedDetectors())
+				trainDetector.getPairedTrack().remove(tileEntity);
+			tileEntity.getPairedDetectors().clear();
+		}
+
 		if (tileEntity != null && tileEntity.isLinkedToRail) {
 			// NOTE: func_147480_a = destroyBlock
 			world.func_147480_a(tileEntity.linkedX, tileEntity.linkedY, tileEntity.linkedZ, false);
@@ -146,19 +157,46 @@ public class BlockTCRail extends Block {
 	}
 
 	@Override
-	public boolean onBlockActivated(World world, int i, int j, int k, EntityPlayer player, int par6, float par7, float par8, float par9) {
-		TileEntity te = world.getTileEntity(i, j, k);
-		int l = world.getBlockMetadata(i, j, k);
+	public boolean onBlockActivated(World world, int blockX, int blockY, int blockZ, EntityPlayer player, int par6, float par7, float par8, float par9) {
+		TileEntity te = world.getTileEntity(blockX, blockY, blockZ);
+		int l = world.getBlockMetadata(blockX, blockY, blockZ);
 
-		if (!world.isRemote && te != null && (te instanceof TileTCRail))
-		{
-			if (player != null && player.inventory != null && player.inventory.getCurrentItem() != null && (player.inventory.getCurrentItem().getItem() instanceof ItemWrench) && ((TileTCRail) te).getType() != null && ((TileTCRail) te).getType().equals(EnumTracks.SMALL_STRAIGHT.getLabel())) {
-				l++;
-				if (l > 3)
-					l = 0;
-				world.setBlockMetadataWithNotify(i, j, k, l, 2);
-				((TileTCRail) te).hasRotated = true;
-				return true;
+		if ((te instanceof TileTCRail) && player != null) {
+			NBTTagCompound entityData = player.getEntityData();
+			if (!entityData.hasKey("TC_Train_Detector_Pairing")) {
+				if (player.inventory != null && player.inventory.getCurrentItem() != null
+						&& (player.inventory.getCurrentItem().getItem() instanceof ItemWrench)
+						&& ((TileTCRail) te).getType() != null
+						&& ((TileTCRail) te).getType().equals(EnumTracks.SMALL_STRAIGHT.getLabel())) {
+					// If player is rotating the track…
+					l++;
+					if (l > 3)
+						l = 0;
+					world.setBlockMetadataWithNotify(blockX, blockY, blockZ, l, 2);
+					((TileTCRail) te).hasRotated = true;
+					return true;
+				}
+			} else { // If player is pairing track to detector…
+				TileTCRail tileTCRail = ((TileTCRail) te);
+				int detectorX = entityData.getInteger("TC_Train_Detector_BlockX");
+				int detectorY = entityData.getInteger("TC_Train_Detector_BlockY");
+				int detectorZ = entityData.getInteger("TC_Train_Detector_BlockZ");
+				TileEntity tilePossibleDetector = world.getTileEntity(detectorX, detectorY, detectorZ);
+				tileTCRail = tileTCRail.getGreatestParent(world);
+				if (tilePossibleDetector instanceof TileTrainDetector) {
+					TileTrainDetector trainDetector = (TileTrainDetector) tilePossibleDetector;
+					if (!trainDetector.getPairedTrack().contains(tileTCRail)) {
+						trainDetector.getPairedTrack().add(tileTCRail);
+						tileTCRail.getPairedDetectors().add(trainDetector);
+						tileTCRail.markDirty();
+						if (!world.isRemote)
+							player.addChatComponentMessage(new ChatComponentText("Added track."));
+						entityData.setInteger("TC_Train_Detector_Pairing", entityData.getInteger("TC_Train_Detector_Pairing") + 1);
+					} else {
+						if (!world.isRemote)
+							player.addChatComponentMessage(new ChatComponentText("Track already added."));
+					}
+				}
 			}
 
 			if (TCRailTypes.isSlopeTrack((TileTCRail) te) || TCRailTypes.isCurvedSlopeTrack((TileTCRail) te))

@@ -4,8 +4,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.player.EntityPlayer;
 import train.common.Traincraft;
-import train.common.core.network.PacketUpdateSwitchStand;
-import train.common.tile.TileSwitchStand;
+import train.common.core.network.PacketUpdateLockable;
+import train.common.library.ILockable;
 
 /**
  * @author 02skaplan
@@ -13,16 +13,16 @@ import train.common.tile.TileSwitchStand;
  * <p>Allows players to lock and unlock a piece of rolling stock and add & remove trusted individuals from using the rolling stock.</p>
  */
 @SideOnly(Side.CLIENT)
-public class GuiLockMenuSwitches extends GuiLockMenuAbstract {
-    private final TileSwitchStand switchStand;
+public class GuiLockMenuLockable extends GuiLockMenuAbstract {
+    private final ILockable lockable;
 
     /**
      * @author 02skaplan
      */
-    public GuiLockMenuSwitches(EntityPlayer editingPlayer, TileSwitchStand switchStand) {
+    public GuiLockMenuLockable(EntityPlayer editingPlayer, ILockable lockable) {
         super(editingPlayer);
-        this.switchStand = switchStand;
-        currentTrustees.addAll(switchStand.getTrustedList());
+        this.lockable = lockable;
+        currentTrustees.addAll(lockable.getTrustedList());
     }
 
     @Override
@@ -33,16 +33,16 @@ public class GuiLockMenuSwitches extends GuiLockMenuAbstract {
     }
     @Override
     public boolean getLocked() {
-        return switchStand.isLocked();
+        return lockable.isLocked();
     }
 
     @Override
     public void setLocked(boolean locked) {
-        switchStand.setLocked(locked);
+        lockable.setLocked(locked);
     }
 
     @Override
     public void sendUpdatePacket(boolean propagate) {
-        Traincraft.switchStandLockChannel.sendToServer(new PacketUpdateSwitchStand(switchStand.isLocked(), exportTrustedPlayers(), switchStand));
+        Traincraft.switchStandLockChannel.sendToServer(new PacketUpdateLockable(lockable.isLocked(), exportTrustedPlayers(), lockable));
     }
 }

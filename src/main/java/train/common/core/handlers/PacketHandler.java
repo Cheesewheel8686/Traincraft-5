@@ -27,12 +27,12 @@ import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.play.client.C17PacketCustomPayload;
 import org.apache.logging.log4j.Level;
 import train.common.Traincraft;
-import train.common.core.network.*;
 import train.common.core.network.AdminBook.PacketAdminBook;
 import train.common.core.network.AdminBook.PacketAdminBookClient;
 import train.common.core.network.AdminBook.PacketAdminBookToggleChunkLoading;
 import train.common.core.network.ITCPacket.ITCPacket;
 import train.common.core.network.ITCPacket.PacketScrollingItemBlockSelect;
+import train.common.core.network.*;
 import train.common.core.network.lockout.PacketLockoutAddUserToSkinGroup;
 import train.common.core.network.lockout.PacketPaintBrushClientSideUpdate;
 import train.common.library.Info;
@@ -111,8 +111,8 @@ public class PacketHandler
         Traincraft.overlayTextureChannel.registerMessage(PacketTextureOverlayConfig.Handler.class, PacketTextureOverlayConfig.class, 15, Side.SERVER);
 		Traincraft.ignitionChannel.registerMessage(PacketDropFire.Handler.class, PacketDropFire.class, 28, Side.SERVER);
 
-		Traincraft.switchStandLockChannel.registerMessage(PacketUpdateSwitchStand.Handler.class,
-				PacketUpdateSwitchStand.class, 17, Side.SERVER);
+		Traincraft.switchStandLockChannel.registerMessage(PacketUpdateLockable.Handler.class,
+				PacketUpdateLockable.class, 17, Side.SERVER);
 		Traincraft.cargoSelectionChannel.registerMessage(PacketCargoSelection.Handler.class,
 				PacketCargoSelection.class, 16, Side.CLIENT);
 		Traincraft.cargoSelectionChannel.registerMessage(PacketCargoSelection.Handler.class,

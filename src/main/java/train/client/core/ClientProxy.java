@@ -51,6 +51,7 @@ import train.common.entity.zeppelin.EntityZeppelinOneBalloon;
 import train.common.entity.zeppelin.EntityZeppelinTwoBalloons;
 import train.common.library.BlockIDs;
 import train.common.library.GuiIDs;
+import train.common.library.ILockable;
 import train.common.library.Info;
 import train.common.library.track.EnumTracks;
 import train.common.mtc.render.RenderMTCBlock;
@@ -359,8 +360,8 @@ public class ClientProxy extends CommonProxy
 			} else { // If player is not riding the entity (freight).
 				return entity1 != null ? new GuiLockMenu(player, ((EntityRollingStock) entity1)) : null;
 			}
-		case (GuiIDs.LOCK_MENU_SWITCHES):
-			return (te instanceof TileSwitchStand ? new GuiLockMenuSwitches(player, ((TileSwitchStand) te)) : null);
+		case (GuiIDs.LOCK_MENU_LOCKABLES):
+			return (te instanceof ILockable ? new GuiLockMenuLockable(player, ((ILockable) te)) : null);
 		case (GuiIDs.CARGO_MENU):
 				return entity1 != null ? new GuiCargoSelection(player, ((EntityRollingStock) entity1)) : null;
 		case (GuiIDs.CREDITS_BOOK):

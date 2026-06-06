@@ -19,7 +19,8 @@ import train.common.Traincraft;
 import train.common.inventory.TrainCraftingManager;
 import train.common.items.BallastTypes;
 import train.common.items.RailVariants;
-import train.common.library.*;
+import train.common.library.BlockIDs;
+import train.common.library.ItemIDs;
 import train.common.library.track.EnumCoreTrack;
 import train.common.library.track.EnumTracks;
 import train.common.library.track.ITrackDefinition;
@@ -420,6 +421,7 @@ public class RecipeHandler extends AbstractRecipeHandler
 		TrainCraftingManager.instance.addRecipe(new ItemStack(BlockIDs.assemblyTableI.block, 1), "IPI", "S S", "SPS", Character.valueOf('I'), ironingot, Character.valueOf('P'), Blocks.piston, Character.valueOf('S'), Blocks.stone);
 		TrainCraftingManager.instance.addRecipe(new ItemStack(BlockIDs.assemblyTableII.block, 1),  "GPG", "O O", "OPO", Character.valueOf('G'), Items.gold_ingot, Character.valueOf('P'), Blocks.piston, Character.valueOf('O'), Blocks.obsidian );
 		TrainCraftingManager.instance.addRecipe(new ItemStack(BlockIDs.assemblyTableIII.block, 1),  "GPG", "DLD", "OPO", Character.valueOf('G'), Items.gold_ingot, Character.valueOf('P'), Blocks.piston, Character.valueOf('D'), Items.diamond, Character.valueOf('L'), Blocks.glowstone, Character.valueOf('O'), Blocks.obsidian );
+		TrainCraftingManager.instance.addRecipe(new ItemStack(BlockIDs.trainDetector.block, 1),  "CPC", "CUC", "CRC", Character.valueOf('C'), Blocks.stone, Character.valueOf('P'), Blocks.heavy_weighted_pressure_plate, Character.valueOf('U'), ingotCopper, Character.valueOf('R'), Items.redstone);
 
 		/* Open Hearth Furnace */
 		TrainCraftingManager.instance.addRecipe(new ItemStack(BlockIDs.openFurnaceIdle.block, 1),  "#L#", "#B#", "#I#", Character.valueOf('#'), Blocks.nether_brick, Character.valueOf('L'), Items.lava_bucket, Character.valueOf('B'), Items.bucket, Character.valueOf('I'), Blocks.iron_block );

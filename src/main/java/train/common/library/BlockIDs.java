@@ -24,6 +24,7 @@ public enum BlockIDs implements IBlockIDs {
 	//book(true, ItemBlockBook.class),
 
 	trainWorkbench(false, null),
+	trainDetector(false, null),
 
 	stopper(false, null),
 	embeddedStopper(false, null),

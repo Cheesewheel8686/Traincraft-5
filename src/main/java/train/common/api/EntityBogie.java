@@ -26,7 +26,10 @@ import train.common.items.TCRailTypes;
 import train.common.library.BlockIDs;
 import train.common.tile.TileTCRail;
 import train.common.tile.TileTCRailGag;
+import train.common.tile.TileTrainDetector;
 
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 public class EntityBogie extends EntityMinecart implements IMinecart, IRoutableCart {
@@ -44,6 +47,8 @@ public class EntityBogie extends EntityMinecart implements IMinecart, IRoutableC
 	protected Side side;
 
 	public TileTCRail currentParentRail = null;
+	private final LinkedList<TileTrainDetector> activeDetectors = new LinkedList<>();
+
 
 	private int turnProgress;
     private double minecartX;
@@ -359,10 +364,16 @@ public class EntityBogie extends EntityMinecart implements IMinecart, IRoutableC
 
 					tileRail = (TileTCRail) tileEntity;
 				}
-				else {
+				else { // If we are not on a rail…
+					// Remove any active detectors if derailed.
+					if (!activeDetectors.isEmpty()) {
+						removeObsoleteDetectors(new LinkedList<>());
+					}
 					super.onUpdate();
 					return;
 				}
+
+				handleTrainDetector(tileRail);
 
 				//applyDragAndPushForces();
 				limitSpeedOnTCRail();
@@ -453,6 +464,58 @@ public class EntityBogie extends EntityMinecart implements IMinecart, IRoutableC
 		}
 		if (posX == 0 && posZ == 0) {
 			worldObj.removeEntity(this);
+		}
+	}
+
+	@Override
+	public void setDead() {
+		super.setDead();
+		for (TileTrainDetector detector : activeDetectors) {
+			detector.removeEntity(this);
+		}
+		activeDetectors.clear();
+	}
+
+	/**
+	 * @author 02skaplan
+	 * @author broscolotos
+	 * @param tileRail Rail tile currently being traversed.
+	 */
+	private void handleTrainDetector(TileTCRail tileRail) {
+		// Straights longer than 1x3 are essentially just stacked 1x3 rails, with the "true parent" being referenced in isLinkedToRail.
+		if (tileRail.isLinkedToRail) {
+			TileEntity parentOfAParent = worldObj.getTileEntity(tileRail.linkedX, tileRail.linkedY, tileRail.linkedZ);
+			if (parentOfAParent instanceof TileTCRail) {
+				tileRail = ((TileTCRail) parentOfAParent);
+			}
+		}
+		// Check if the track has any linked Train Detectors.
+		LinkedList<TileTrainDetector> trackPairedDetectors = tileRail.getPairedDetectors();
+		if (!trackPairedDetectors.isEmpty()) {
+			for (TileTrainDetector detector : trackPairedDetectors) {
+				// Check for new detectors.
+				if (!activeDetectors.contains(detector)) {
+					// Add entity to the new detector.
+					detector.addEntity(this);
+					activeDetectors.add(detector);
+				}
+			}
+			// Remove and mark as obsolete any old detectors.
+			removeObsoleteDetectors(trackPairedDetectors);
+		} else if (!activeDetectors.isEmpty()){ // Remove all active detectors when we move to a track that doesn't have any detectors.
+			removeObsoleteDetectors(trackPairedDetectors);
+        }
+	}
+
+	private void removeObsoleteDetectors(LinkedList<TileTrainDetector> trackPairedDetectors) {
+		Iterator<TileTrainDetector> detectorIterator = activeDetectors.iterator();
+		TileTrainDetector detector;
+		while (detectorIterator.hasNext()) {
+			detector = detectorIterator.next();
+			if (!trackPairedDetectors.contains(detector)) {
+				detector.removeEntity(this);
+				detectorIterator.remove();
+			}
 		}
 	}
 

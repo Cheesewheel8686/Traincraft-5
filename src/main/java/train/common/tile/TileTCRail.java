@@ -5,12 +5,14 @@ import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants;
 import org.apache.logging.log4j.Level;
 import train.common.Traincraft;
 import train.common.items.ItemTCRail;
@@ -19,6 +21,9 @@ import train.common.library.BlockIDs;
 import train.common.library.track.EnumCoreTrack;
 import train.common.library.track.EnumTracks;
 import train.common.library.track.ITrackDefinition;
+
+import java.util.HashSet;
+import java.util.LinkedList;
 
 public class TileTCRail extends TileEntity implements ITileTCRail {
 
@@ -54,8 +59,10 @@ public class TileTCRail extends TileEntity implements ITileTCRail {
 	private int isLeftFlag = -5;
 	public Integer displayList = null;
 	public int exitDirection = -1;
+	private final LinkedList<TileTrainDetector> pairedDetectors;
 
 	public TileTCRail() {
+		pairedDetectors = new LinkedList<>();
 		if(this.worldObj != null)
 			facingMeta = this.getBlockMetadata();
 	}
@@ -320,6 +327,18 @@ public class TileTCRail extends TileEntity implements ITileTCRail {
 			exitDirection = -1;
 		}
 		exitDirection = nbt.getInteger("exitDirection");
+		// Get paired train detectors.
+		NBTTagList tagList = nbt.getTagList("PairedDetectors", Constants.NBT.TAG_COMPOUND);
+		if (tagList != null && worldObj != null) {
+			for (int i = 0; i < tagList.tagCount(); i++) {
+				NBTTagCompound tagCompound = tagList.getCompoundTagAt(i);
+				int[] coordinateArray = tagCompound.getIntArray("Coordinates");
+				TileEntity te = worldObj.getTileEntity(coordinateArray[0], coordinateArray[1], coordinateArray[2]);
+				if (te instanceof TileTrainDetector) {
+					pairedDetectors.add(((TileTrainDetector) te));
+				}
+			}
+		}
 		super.readFromNBT(nbt);
 	}
 
@@ -357,6 +376,15 @@ public class TileTCRail extends TileEntity implements ITileTCRail {
 		nbt.setInteger("idDrop", Item.getIdFromItem(idDrop));
 		nbt.setBoolean("previousRedstoneState", previousRedstoneState);
 		nbt.setInteger("exitDirection", exitDirection);
+		// Write saved train detectors to NBT.
+		NBTTagList tagList = new NBTTagList();
+		NBTTagCompound tagCompound;
+		for (TileTrainDetector pairedDetector : pairedDetectors) {
+			tagCompound = new NBTTagCompound();
+			tagCompound.setIntArray("Coordinates", new int[]{pairedDetector.xCoord, pairedDetector.yCoord, pairedDetector.zCoord});
+			tagList.appendTag(tagCompound);
+		}
+		nbt.setTag("PairedDetectors", tagList);
 		super.writeToNBT(nbt);
 	}
 
@@ -538,4 +566,41 @@ public class TileTCRail extends TileEntity implements ITileTCRail {
 	public double getMaxRenderDistanceSquared() {
 		return 24567.0D;
 	}//originally was 16384
+
+    public LinkedList<TileTrainDetector> getPairedDetectors() {
+        return pairedDetectors;
+    }
+
+	/**
+	 * <p>A recursive method to find the parent of a tile.</p>
+	 * <p>Some track pieces, like the 1x12 straight actually make use of three 1x3 straights, so the result will be
+	 * one main TileTCRail tile, two "auxiliary" TileTCRail tiles, and nine TileTCRailGag tiles. This method can locate
+	 * the parent TileTCRail from one of the auxiliary TileTCRails as part of the track.</p>
+	 * @author 02skaplan
+	 * @author broscolotos
+	 * @return The tile itself, or the tile to which it is linked.
+	 */
+	public TileTCRail getGreatestParent(World worldObj) {
+		return getGreatestParent(worldObj, new HashSet<>());
+	}
+
+	private TileTCRail getGreatestParent(World worldObj, HashSet<TileTCRail> visited) {
+		if (!isLinkedToRail) {
+			return this;
+		}
+		if (!visited.contains(this)) {
+			visited.add(this);
+			TileEntity parent = worldObj.getTileEntity(linkedX, linkedY, linkedZ);
+			if (parent instanceof TileTCRail) {
+				return ((TileTCRail) parent).getGreatestParent(worldObj, visited);
+			} else if (parent instanceof TileTCRailGag) {
+				TileTCRailGag gag = (TileTCRailGag) parent;
+				TileEntity originTile = worldObj.getTileEntity(gag.originX, gag.originY, gag.originZ);
+				if (originTile instanceof TileTCRail) {
+					return ((TileTCRail) originTile).getGreatestParent(worldObj, visited);
+				}
+			}
+		}
+		return this;
+	}
 }

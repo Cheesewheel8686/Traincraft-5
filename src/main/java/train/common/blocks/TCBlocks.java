@@ -50,6 +50,7 @@ public class TCBlocks {
 		BlockIDs.Racor36H_2.block = new BlockRacor36H_2().setHardness(4F).setStepSound(Block.soundTypeWood);
 
 		BlockIDs.trainWorkbench.block = new BlockTrainWorkbench(16).setHardness(1.7F).setStepSound(Block.soundTypeWood);
+		BlockIDs.trainDetector.block = new BlockTrainDetector(16).setHardness(1.7F).setStepSound(Block.soundTypeStone);
 
 		BlockIDs.stopper.block = new BlockStopper().setHardness(1.7F).setStepSound(Block.soundTypeWood);
 		BlockIDs.americanstopper.block = new BlockAmericanStopper().setHardness(1.7F).setStepSound(Block.soundTypeMetal);

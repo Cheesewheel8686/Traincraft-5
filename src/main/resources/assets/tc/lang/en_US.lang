@@ -46,6 +46,7 @@ tile.tc:distilIdle.name=Distill
 tile.tc:assemblyTableI.name=Assembly Table I
 tile.tc:assemblyTableII.name=Assembly Table II
 tile.tc:assemblyTableIII.name=Assembly Table III
+tile.tc:trainDetector.name=Train Detector
 tile.tc:tcRail.name=Traincraft Rail
 tile.tc:tcRailGag.name=Traincraft Rail
 fluid.tc:fluid.diesel.name=Diesel Fuel

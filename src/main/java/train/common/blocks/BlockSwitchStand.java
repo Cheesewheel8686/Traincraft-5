@@ -131,7 +131,7 @@ public abstract class BlockSwitchStand extends BlockLever {
         } else { // Client side.
             if ((player.isSneaking()) && (player.inventory.getCurrentItem() != null) && (player.inventory.getCurrentItem().getItem() instanceof ItemPadlock)
                     &&  ((player.getDisplayName().equalsIgnoreCase(switchStand.getOwner())) || (player.canCommandSenderUseCommand(2, "")))) {
-                player.openGui(Traincraft.instance, GuiIDs.LOCK_MENU_SWITCHES, world, x, y, z);
+                player.openGui(Traincraft.instance, GuiIDs.LOCK_MENU_LOCKABLES, world, x, y, z);
             }
         }
         return true;
