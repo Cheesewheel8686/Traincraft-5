@@ -23,10 +23,10 @@ public class ItemBlockTrainDetector extends ItemBlock
     {
         super.addInformation(stack, player, tooltip, advanced);
 
-        tooltip.add(EnumChatFormatting.WHITE + "Detects trains passing over a paired track.");
+        tooltip.add(EnumChatFormatting.WHITE + "Detects trains passing over paired tracks.");
         tooltip.add(EnumChatFormatting.YELLOW + "Use: Composite Wrench to pair it to a track.");
         tooltip.add(EnumChatFormatting.AQUA + "Note: Can be placed nearby, not directly underneath.");
-        tooltip.add(EnumChatFormatting.GRAY + "Reset: Sneak-use the wrench to clear pairing.");
+        tooltip.add(EnumChatFormatting.GRAY + "Reset: Sneak-use with the wrench to clear pairings.");
         tooltip.add(EnumChatFormatting.GRAY + "Right-click to manage lock settings.");
     }
 }
