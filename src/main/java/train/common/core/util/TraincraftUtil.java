@@ -8,7 +8,6 @@ import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.oredict.OreDictionary;
 import train.common.api.EntityRollingStock;
-import train.common.api.Locomotive;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -124,8 +123,8 @@ public class TraincraftUtil{
     public static void updateRider(EntityRollingStock transport,double distance, double yOffset) {
         if (transport.riddenByEntity == null) { return; }
         double pitchRads = transport.anglePitchClient * radian;
-        double rotationCos1 = Math.cos(Math.toRadians(transport.renderYaw+((transport instanceof Locomotive)?90:180)));
-        double rotationSin1 = Math.sin(Math.toRadians(transport.renderYaw+((transport instanceof Locomotive)?90:180)));
+        double rotationCos1 = Math.cos(Math.toRadians(transport.renderYaw+((transport.getTrainSpec().getBogieLocoPosition() != 0)?90:180)));
+        double rotationSin1 = Math.sin(Math.toRadians(transport.renderYaw+((transport.getTrainSpec().getBogieLocoPosition() != 0)?90:180)));
         if(transport.side.isServer()){
             rotationCos1 =  Math.cos(Math.toRadians(transport.serverRealRotation + 90));
             rotationSin1 = Math.sin(Math.toRadians((transport.serverRealRotation + 90)));
@@ -156,8 +155,8 @@ public class TraincraftUtil{
     public static void updateRider(EntityRollingStock transport, double distance, double yOffset, double leftOffset) {
         if (transport.riddenByEntity == null) { return; }
         double pitchRads = transport.anglePitchClient * radian;
-        double rotationCos1 = Math.cos(Math.toRadians(transport.renderYaw + ((transport instanceof Locomotive)? 90 : 180)));
-        double rotationSin1 = Math.sin(Math.toRadians(transport.renderYaw + ((transport instanceof Locomotive)? 90 : 180)));
+        double rotationCos1 = Math.cos(Math.toRadians(transport.renderYaw + ((transport.getTrainSpec().getBogieLocoPosition() != 0)? 90 : 180)));
+        double rotationSin1 = Math.sin(Math.toRadians(transport.renderYaw + ((transport.getTrainSpec().getBogieLocoPosition() != 0)? 90 : 180)));
         double rotationCosLR1 = Math.cos(Math.toRadians(transport.renderYaw));
         double rotationSinLR1 = Math.sin(Math.toRadians((transport.renderYaw)));
         if(transport.side.isServer()) {
