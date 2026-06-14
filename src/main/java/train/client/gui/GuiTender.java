@@ -2,27 +2,39 @@ package train.client.gui;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.util.IIcon;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
+import train.client.core.helpers.FluidRenderHelper;
 import train.client.gui.specialbuttons.TransportLockGuiHandler;
 import train.common.Traincraft;
 import train.common.api.LiquidManager;
 import train.common.api.Tender;
 import train.common.core.network.PacketAddNote;
+import train.common.core.network.PacketTenderStorageMode;
+import train.common.api.stock.TenderStorageMode;
 import train.common.inventory.InventoryTender;
 import train.common.library.Info;
 
 import java.util.Collections;
 
 public class GuiTender extends GuiContainer {
+	private static final int SECONDARY_TANK_X = 62;
+	private static final int SECONDARY_TANK_Y = 19;
+	private static final int SECONDARY_TANK_WIDTH = 69;
+	private static final int SECONDARY_TANK_HEIGHT = 50;
 
 	private Tender tender;
 	private EntityPlayer player;
-	private GuiButton buttonLock;
+	private GuiButton storageModeButton;
 
 	public GuiTender(EntityPlayer player, InventoryPlayer inventoryplayer, Entity entityminecart) {
 		super(new InventoryTender(inventoryplayer, (Tender) entityminecart));
@@ -34,6 +46,7 @@ public class GuiTender extends GuiContainer {
 	public void initGui() {
 		super.initGui();
 		buttonList.clear();
+		storageModeButton = null;
 		int var1 = (this.width-xSize) / 2;
 		int var2 = (this.height-ySize) / 2;
 
@@ -49,7 +62,12 @@ public class GuiTender extends GuiContainer {
 
 		if (lockButton != null) {
 			this.buttonList.add(lockButton);
-			this.buttonLock = lockButton;
+		}
+
+		if (tender.isStorageModeSwitchAvailable()) {
+			String modeLabel = tender.isDualChamberMode() ? "Use Coal Bunker" : "Use Dual Tanks";
+			storageModeButton = new GuiButton(4, var1 + 8, var2 - 10, 110, 10, modeLabel);
+			this.buttonList.add(storageModeButton);
 		}
 
 		tender.guiTCTextFieldTrainNote = new GuiTCTextField(fontRendererObj, width/2 - 85, var2 - 26, 170,15);
@@ -63,6 +81,13 @@ public class GuiTender extends GuiContainer {
 		{
 			case 3:
 				TransportLockGuiHandler.handleLockButton(this, guibutton, player, tender, isShiftKeyDown());
+			break;
+			case 4:
+				TenderStorageMode nextMode = tender.isDualChamberMode()
+						? TenderStorageMode.COAL_BUNKER
+						: TenderStorageMode.DUAL_CHAMBER;
+				Traincraft.modChannel.sendToServer(new PacketTenderStorageMode(tender.getEntityId(), nextMode));
+				player.closeScreen();
 			break;
 		}
 	}
@@ -141,12 +166,31 @@ public class GuiTender extends GuiContainer {
 					mouseX, mouseY, fontRendererObj);
 		}
 
+		if (tender.isDualChamberMode()
+				&& mouseX > j + SECONDARY_TANK_X
+				&& mouseX < j + SECONDARY_TANK_X + SECONDARY_TANK_WIDTH
+				&& mouseY > k + SECONDARY_TANK_Y
+				&& mouseY < k + SECONDARY_TANK_Y + SECONDARY_TANK_HEIGHT) {
+			int amount = tender.getSyncedSecondaryFluidAmount();
+			int capacity = tender.getSecondaryTankCapacity();
+			Fluid fluid = FluidRegistry.getFluid(tender.getSyncedSecondaryFluidId());
+			String fluidName = fluid == null
+					? "Fuel"
+					: fluid.getLocalizedName(new FluidStack(fluid, Math.max(1, amount)));
+
+			drawHoveringText(Collections.singletonList(
+					fluidName + ": " + amount + "mb / " + capacity + "mb"
+			), mouseX, mouseY, fontRendererObj);
+		}
+
 		tender.guiTCTextFieldTrainNote.drawTextBox();
 	}
 
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float f, int t, int g) {
-		String i = Info.guiPrefix + "gui_tender.png";
+		String i = Info.guiPrefix + (tender.isDualChamberMode()
+				? "gui_dualchambertender.png"
+				: "gui_tender.png");
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		mc.renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation,i));
 		int j = (width - xSize) / 2;
@@ -161,12 +205,87 @@ public class GuiTender extends GuiContainer {
 
 				drawTexturedModalRect(j + 143, (k + 69) - lo, 190, 69 - lo, 18, lo);
 			}
+
+			if (tender.isDualChamberMode()) {
+				drawSecondaryTankFluid(j, k, i);
+			}
 		}
+	}
+
+	private void drawSecondaryTankFluid(int guiLeft, int guiTop, String guiTexture) {
+		int amount = tender.getSyncedSecondaryFluidAmount();
+		int capacity = tender.getSecondaryTankCapacity();
+		Fluid fluid = FluidRegistry.getFluid(tender.getSyncedSecondaryFluidId());
+
+		if (fluid == null || amount <= 0 || capacity <= 0) {
+			return;
+		}
+
+		int fillHeight = Math.min(
+				SECONDARY_TANK_HEIGHT,
+				Math.max(1, (amount * SECONDARY_TANK_HEIGHT) / capacity)
+		);
+
+		IIcon icon = FluidRenderHelper.getFluidTexture(fluid, false);
+
+		if (icon == null) {
+			return;
+		}
+
+		mc.renderEngine.bindTexture(FluidRenderHelper.getFluidSheet(fluid));
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 0.72F);
+
+		int x = guiLeft + SECONDARY_TANK_X;
+		int y = guiTop + SECONDARY_TANK_Y + SECONDARY_TANK_HEIGHT - fillHeight;
+		drawFluidArea(x, y, SECONDARY_TANK_WIDTH, fillHeight, icon);
+
+		GL11.glDisable(GL11.GL_BLEND);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		mc.renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation, guiTexture));
+	}
+
+	private void drawFluidArea(int x, int y, int width, int height, IIcon icon) {
+		for (int remainingHeight = height, drawY = y + height; remainingHeight > 0;) {
+			int tileHeight = Math.min(16, remainingHeight);
+			drawY -= tileHeight;
+
+			for (int remainingWidth = width, drawX = x; remainingWidth > 0;) {
+				int tileWidth = Math.min(16, remainingWidth);
+				drawFluidIcon(drawX, drawY, tileWidth, tileHeight, icon);
+				drawX += tileWidth;
+				remainingWidth -= tileWidth;
+			}
+
+			remainingHeight -= tileHeight;
+		}
+	}
+
+	private void drawFluidIcon(int x, int y, int width, int height, IIcon icon) {
+		double minU = icon.getMinU();
+		double minV = icon.getMinV();
+		double maxU = minU + ((icon.getMaxU() - minU) * width / 16.0D);
+		double maxV = minV + ((icon.getMaxV() - minV) * height / 16.0D);
+		Tessellator tessellator = Tessellator.instance;
+
+		tessellator.startDrawingQuads();
+		tessellator.addVertexWithUV(x, y + height, zLevel, minU, maxV);
+		tessellator.addVertexWithUV(x + width, y + height, zLevel, maxU, maxV);
+		tessellator.addVertexWithUV(x + width, y, zLevel, maxU, minV);
+		tessellator.addVertexWithUV(x, y, zLevel, minU, minV);
+		tessellator.draw();
 	}
 
 	@Override
 	public void updateScreen() {
 		super.updateScreen();
+
+		if (storageModeButton != null && !tender.isStorageModeSwitchAvailable()) {
+			storageModeButton.visible = false;
+			storageModeButton.enabled = false;
+		}
+
 		if (tender.guiTCTextFieldTrainNote.isFocused()) {
 			tender.guiTCTextFieldTrainNote.updateCursorCounter();
 		}

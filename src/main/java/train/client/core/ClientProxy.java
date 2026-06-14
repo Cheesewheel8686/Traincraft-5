@@ -34,6 +34,7 @@ import train.client.core.handlers.RecipeBookHandler;
 import train.client.core.handlers.TCKeyHandler;
 import train.client.core.helpers.JLayerHook;
 import train.client.gui.*;
+import train.client.gui.locomotive.GuiLiquidFiredSteamLocomotive;
 import train.client.render.*;
 import train.client.render.itemRender.*;
 import train.common.Traincraft;
@@ -317,7 +318,16 @@ public class ClientProxy extends CommonProxy
 		case GuiIDs.TRAIN_WORKBENCH:
 			return te != null && te instanceof TileTrainWbench ? new GuiTrainCraftingBlock(player.inventory, player.worldObj, (TileTrainWbench) te) : null;
 		case (GuiIDs.LOCO):
-			return riddenByEntity != null ? new GuiLoco2(riddenByEntity.inventory, entity) : null;
+			if (riddenByEntity == null) {
+				return null;
+			}
+			if (entity instanceof train.common.api.locomotive.AbstractLiquidFiredSteamEngine) {
+				return new GuiLiquidFiredSteamLocomotive(
+						riddenByEntity.inventory,
+						(train.common.api.locomotive.AbstractLiquidFiredSteamEngine) entity
+				);
+			}
+			return new GuiLoco2(riddenByEntity.inventory, entity);
 		case (GuiIDs.CONTROL_CAR):
 			return riddenByEntity != null ? new GuiControlCar(riddenByEntity.inventory, entity) : null;
 		case (GuiIDs.LOCO_TANKENGINE):

@@ -239,6 +239,10 @@ public class LiquidManager {
 		public boolean isEmpty() {
 			return (getFluid() == null) || (getFluid().amount <= 0);
 		}
+
+		public boolean acceptsFluid(FluidStack resource) {
+			return resource != null && resource.getFluid() != null;
+		}
 	}
 
 	public class FilteredTank extends StandardTank {
@@ -272,18 +276,29 @@ public class LiquidManager {
 
 		@Override
 		public int fill(FluidStack resource, boolean doFill) {
-			if (multiFilter != null) {
-				for (int i = 0; i < multiFilter.length; i++) {
-					if (multiFilter[i] != null && isFluidEqual(this.multiFilter[i], resource)) {
-						return super.fill(resource, doFill);
-					}
-				}
-			}
-			else
-			if (this.filter.isFluidEqual(resource)) {
+			if (acceptsFluid(resource)) {
 				return super.fill(resource, doFill);
 			}
 			return 0;
+		}
+
+		@Override
+		public boolean acceptsFluid(FluidStack resource) {
+			if (resource == null || resource.getFluid() == null) {
+				return false;
+			}
+
+			if (multiFilter != null) {
+				for (int i = 0; i < multiFilter.length; i++) {
+					if (multiFilter[i] != null && isFluidEqual(multiFilter[i], resource)) {
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			return filter != null && filter.isFluidEqual(resource);
 		}
 
 		public FluidStack getFilter() {

@@ -3,7 +3,7 @@ package train.common.core;
 import net.minecraft.util.MathHelper;
 import train.common.api.EntityRollingStock;
 import train.common.api.Locomotive;
-import train.common.api.SteamTrain;
+import train.common.api.locomotive.AbstractBoilerLocomotive;
 
 public class HandleOverheating {
 
@@ -93,8 +93,8 @@ public class HandleOverheating {
 					//entity.overheatLevel++;
 				}
 
-				if (entity instanceof SteamTrain) {
-					int waterLevel = ((SteamTrain) entity).getWater();
+				if (entity instanceof AbstractBoilerLocomotive) {
+					int waterLevel = ((AbstractBoilerLocomotive) entity).getWaterAmount();
 					/**
 					 * water is empty => overheats
 					 */
@@ -103,7 +103,7 @@ public class HandleOverheating {
 							entity.overheatLevel += 3;
 						}
 					}
-					int maxWaterLevel = ((SteamTrain) entity).getCartTankCapacity();
+					int maxWaterLevel = ((AbstractBoilerLocomotive) entity).getCartTankCapacity();
 					if ((waterLevel > maxWaterLevel - (maxWaterLevel / 2)) && entity.overheatLevel > entity.getAverageOverheat() && !((Locomotive) entity).getState().equals("broken")) {
 						entity.overheatLevel--;
 					}

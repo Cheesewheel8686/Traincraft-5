@@ -24,31 +24,4 @@ public abstract class AbstractSteamTankEngine extends SteamTrain
             ((EntityPlayer) riddenByEntity).openGui(Traincraft.instance, GuiIDs.LOCO_TANKENGINE, worldObj, (int) this.posX, (int) this.posY, (int) this.posZ);
         }
     }
-
-    @Override
-    public void onUpdate() {
-        super.onUpdate();
-        if (worldObj.isRemote) {
-            return;
-        }
-        checkInvent(locoInvent[0], locoInvent[1], this);
-        for (int h = 0; h < this.locoInvent.length; h++) {
-            if (this.locoInvent[h] != null && steamFuelLast(this.locoInvent[h]) != 0) {
-                if (fuelTrain <= 0 && !worldObj.isRemote) {
-                    fuelTrain = steamFuelLast(this.locoInvent[h]);
-                    if (!worldObj.isRemote) {
-                        this.decrStackSize(h, 1);
-                    }
-                }
-            }
-            else if (this.locoInvent[h] != null && steamFuelLast(this.locoInvent[h]) != 0) {
-                if (fuelTrain <= 0 && !worldObj.isRemote) {
-                    fuelTrain = steamFuelLast(this.locoInvent[h]);
-                    if (!worldObj.isRemote) {
-                        this.decrStackSize(h, 1);
-                    }
-                }
-            }
-        }
-    }
 }

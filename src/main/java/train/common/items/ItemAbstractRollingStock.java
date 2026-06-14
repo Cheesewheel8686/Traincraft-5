@@ -793,6 +793,11 @@ public abstract class ItemAbstractRollingStock extends ItemMinecart implements I
                     }
                     if (var5.hasKey("overlayTextureConfigTag")) // Import overlay configuration from NBT and apply it to the entity.
                         rollingStock.getOverlayTextureContainer().importFromConfigTag(var5.getCompoundTag("overlayTextureConfigTag"));
+                    if (rollingStock instanceof Tender && var5.hasKey(Tender.NBT_TENDER_STORAGE_MODE)) {
+                        ((Tender) rollingStock).restoreStorageModeFromItem(
+                                var5.getInteger(Tender.NBT_TENDER_STORAGE_MODE)
+                        );
+                    }
                 }
                 if (player != null)
                     rollingStock.setInformation(((ItemAbstractRollingStock) itemstack.getItem()).getTrainType(), player.getDisplayName(), trainCreator, (itemstack.getItem()).getItemStackDisplayName(itemstack), uniID);
@@ -806,6 +811,7 @@ public abstract class ItemAbstractRollingStock extends ItemMinecart implements I
                         sendLocalChatMessage(player,"To paint, use the " + StatCollector.translateToLocal("item.tc:paintbrushThing.name"));
                     }
                 }
+                rollingStock.markPlacedNow();
                 world.spawnEntityInWorld(rollingStock);
             }
             --itemstack.stackSize;
@@ -848,6 +854,17 @@ public abstract class ItemAbstractRollingStock extends ItemMinecart implements I
                 }
                 if (color != -1) {
                     tag.setInteger("trainColor", color);
+                }
+                if (train instanceof Tender) {
+                    Tender tender = (Tender) train;
+                    if (tender.supportsStorageMode(tender.getStorageMode())) {
+                        tag.setInteger(
+                                Tender.NBT_TENDER_STORAGE_MODE,
+                                tender.getStorageMode().getId()
+                        );
+                    } else {
+                        tag.removeTag(Tender.NBT_TENDER_STORAGE_MODE);
+                    }
                 }
             } else {
                 tag.setString("trainCreator", creator != null && creator.length() > 1 ? creator : "Creative");

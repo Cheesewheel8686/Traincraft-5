@@ -60,6 +60,8 @@ import train.common.tile.TileTCRailGag;
 import train.common.tile.TileTrainDetector;
 import train.common.utils.devutils.DebugUtil;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static train.common.core.util.TraincraftUtil.degrees;
@@ -67,6 +69,9 @@ import static train.common.core.util.TraincraftUtil.isRailBlockAt;
 
 public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 {
+	private static final String NBT_REAL_WORLD_PLACED_AT = "RealWorldPlacedAt";
+	private static final String REAL_TIME_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
 	public byte specialRenderMode = 0;
 	public int fuelTrain;
 	protected static final int matrix[][][] = { { { 0, 0, -1 }, { 0, 0, 1 } }, { { -1, 0, 0 }, { 1, 0, 0 } }, { { -1, -1, 0 }, { 1, 0, 0 } }, { { -1, 0, 0 }, { 1, -1, 0 } }, { { 0, 0, -1 }, { 0, -1, 1 } }, { { 0, -1, -1 }, { 0, 0, 1 } }, { { 0, 0, 1 }, { 1, 0, 0 } }, { { 0, 0, 1 }, { -1, 0, 0 } }, { { 0, 0, -1 }, { -1, 0, 0 } }, { { 0, 0, -1 }, { 1, 0, 0 } } };
@@ -147,6 +152,7 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 
 	private int ticksSinceHeld = 0;
 	private boolean cartLocked = false;
+	private long realWorldPlacedAt;
 
 	/**
 	 * New physics integration
@@ -173,6 +179,53 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 		if (world != null)
 		{
 			initRollingStock(world);
+		}
+	}
+
+	public final void markPlacedNow()
+	{
+		if (realWorldPlacedAt == 0L)
+		{
+			realWorldPlacedAt = System.currentTimeMillis();
+		}
+	}
+
+	public final boolean isWithinRealTimeWindow(long durationMillis)
+	{
+		if (realWorldPlacedAt <= 0L)
+		{
+			return false;
+		}
+
+		long elapsedMillis = System.currentTimeMillis() - realWorldPlacedAt;
+		return elapsedMillis >= 0L && elapsedMillis < Math.max(0L, durationMillis);
+	}
+
+	private static String formatRealWorldTimestamp(long timestamp)
+	{
+		SimpleDateFormat format = new SimpleDateFormat(REAL_TIME_TIMESTAMP_FORMAT, Locale.ROOT);
+		format.setTimeZone(TimeZone.getTimeZone("UTC"));
+		return format.format(new Date(timestamp));
+	}
+
+	private static long parseRealWorldTimestamp(String timestamp)
+	{
+		if (timestamp == null || timestamp.length() == 0)
+		{
+			return 0L;
+		}
+
+		SimpleDateFormat format = new SimpleDateFormat(REAL_TIME_TIMESTAMP_FORMAT, Locale.ROOT);
+		format.setTimeZone(TimeZone.getTimeZone("UTC"));
+		format.setLenient(false);
+
+		try
+		{
+			return format.parse(timestamp).getTime();
+		}
+		catch (ParseException ignored)
+		{
+			return 0L;
 		}
 	}
 
@@ -1677,6 +1730,13 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 		nbttagcompound.setBoolean("brake", isBraking);
 		nbttagcompound.setBoolean("parkingBrake", parkingBrake);
 
+		if (realWorldPlacedAt > 0L)
+		{
+			nbttagcompound.setString(
+					NBT_REAL_WORLD_PLACED_AT,
+					formatRealWorldTimestamp(realWorldPlacedAt)
+			);
+		}
 	}
 
 	@Override
@@ -1695,6 +1755,9 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 		this.rotation = nbttagcompound.getFloat("rotation");
 		this.isBraking = nbttagcompound.getBoolean("brake");
 		parkingBrake = nbttagcompound.getBoolean("parkingBrake");
+		realWorldPlacedAt = nbttagcompound.hasKey(NBT_REAL_WORLD_PLACED_AT)
+				? parseRealWorldTimestamp(nbttagcompound.getString(NBT_REAL_WORLD_PLACED_AT))
+				: 0L;
 		dataWatcher.updateObject(30, "" + parkingBrake);
 
 	}

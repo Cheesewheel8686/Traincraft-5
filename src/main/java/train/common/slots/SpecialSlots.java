@@ -41,6 +41,29 @@ public class SpecialSlots extends Slot {
 		}
 	}
 
+	public class SlotFilteredLiquid extends Slot {
+		private final IFluidContainerSlotValidator validator;
+		private final int inputSlot;
+
+		public SlotFilteredLiquid(
+				IInventory inventory,
+				int index,
+				int x,
+				int y,
+				IFluidContainerSlotValidator validator
+		) {
+			super(inventory, index, x, y);
+			this.validator = validator;
+			this.inputSlot = index;
+		}
+
+		@Override
+		public boolean isItemValid(ItemStack itemstack) {
+			return validator != null
+					&& validator.isContainerValidForInputSlot(inputSlot, itemstack);
+		}
+	}
+
 	public class SlotBuilder extends Slot {
 		public SlotBuilder(IInventory par1iInventory, int par2, int par3, int par4) {
 			super(par1iInventory, par2, par3, par4);

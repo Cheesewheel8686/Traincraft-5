@@ -225,7 +225,16 @@ public class CommonProxy implements IGuiHandler {
 		case (GuiIDs.TRAIN_WORKBENCH):
 			return te != null && te instanceof TileTrainWbench ? new ContainerTrainWorkbench(player.inventory, player.worldObj, (TileTrainWbench) te) : null;
 		case (GuiIDs.LOCO):
-			return riddenByEntity != null ? new InventoryLoco(riddenByEntity.inventory, (EntityRollingStock) entity) : null;
+			if (riddenByEntity == null) {
+				return null;
+			}
+			if (entity instanceof train.common.api.locomotive.AbstractLiquidFiredSteamEngine) {
+				return new InventoryLiquidFiredLocomotive(
+						riddenByEntity.inventory,
+						(train.common.api.locomotive.AbstractLiquidFiredSteamEngine) entity
+				);
+			}
+			return new InventoryLoco(riddenByEntity.inventory, (EntityRollingStock) entity);
 		case (GuiIDs.CONTROL_CAR):
 			return riddenByEntity != null ? new InventoryControlCar(riddenByEntity.inventory, (EntityRollingStock) entity) : null;
 		case (GuiIDs.LOCO_TANKENGINE):

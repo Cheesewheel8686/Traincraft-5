@@ -9,7 +9,7 @@ import org.lwjgl.opengl.GL11;
 import train.common.api.AbstractControlCar;
 import train.common.api.DieselTrain;
 import train.common.api.Locomotive;
-import train.common.api.SteamTrain;
+import train.common.api.locomotive.AbstractBoilerLocomotive;
 import train.common.items.ItemRemoteController;
 import train.common.library.Info;
 
@@ -48,7 +48,7 @@ public class HUDloco extends GuiScreen {
 		/**
 		 * Steam Train have water
 		 */
-		if (rcCar instanceof SteamTrain) {
+		if (rcCar instanceof AbstractBoilerLocomotive) {
 			renderWaterBar(rcCar);
 		}
 
@@ -67,7 +67,7 @@ public class HUDloco extends GuiScreen {
 		GL11.glEnable(3042);
 		GL11.glEnable(32826);
 		this.zLevel = -90.0F;
-		if (rcCar instanceof SteamTrain) {
+		if (rcCar instanceof AbstractBoilerLocomotive) {
 			game.renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation,Info.guiPrefix + "loco_hud_steam.png"));
 		}
 		else {
@@ -82,7 +82,7 @@ public class HUDloco extends GuiScreen {
 		double speed = loco.getSpeed();
 
 		int h;
-		if (loco instanceof SteamTrain) {
+		if (loco instanceof AbstractBoilerLocomotive) {
 			h = 15;
 		}
 		else {
@@ -127,7 +127,7 @@ public class HUDloco extends GuiScreen {
 		/**
 		 * Steam Train have different HUD
 		 */
-		if (loco instanceof SteamTrain) {
+		if (loco instanceof AbstractBoilerLocomotive) {
 			game.renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation,Info.guiPrefix + "loco_hud_steam.png"));
 		}
 		else {
@@ -137,7 +137,7 @@ public class HUDloco extends GuiScreen {
 		 * Things are slightly different in Steam HUD
 		 * because it's a black bar that is rendered that hides the color bar the black bar is rendered from top to bottom
 		 */
-		if (!(loco instanceof SteamTrain)) {
+		if (!(loco instanceof AbstractBoilerLocomotive)) {
 			drawTexturedModalRect(28, windowHeight + 11, 148, 150 + l, 7, 70 - l);// l max = 70
 		}
 		else {
@@ -149,8 +149,8 @@ public class HUDloco extends GuiScreen {
 	}
 
 	private void renderWaterBar(Locomotive loco) {
-		int l = ((SteamTrain) loco).getWater();
-		int l_Scaled = Math.abs((l * 49) / ((SteamTrain) loco).getCartTankCapacity());
+		int l = ((AbstractBoilerLocomotive) loco).getWaterAmount();
+		int l_Scaled = Math.abs((l * 49) / ((AbstractBoilerLocomotive) loco).getCartTankCapacity());
 		if (l_Scaled > 49) {
 			l_Scaled = 49;// to fit the 49 pixels bar
 		}
@@ -177,9 +177,9 @@ public class HUDloco extends GuiScreen {
 		GL11.glEnable(32826);
 
 		/**
-		 * SteamTrain have different HUD
+		 * AbstractBoilerLocomotive have different HUD
 		 */
-		if (loco instanceof SteamTrain) {
+		if (loco instanceof AbstractBoilerLocomotive) {
 			game.renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation,Info.guiPrefix + "loco_hud_steam.png"));
 		}
 		else {
@@ -195,7 +195,7 @@ public class HUDloco extends GuiScreen {
 		/**
 		 * Things are slightly different in Steam HUD
 		 */
-		if (!(loco instanceof SteamTrain)) {
+		if (!(loco instanceof AbstractBoilerLocomotive)) {
 			drawTexturedModalRect(75, windowHeight + 37 - ((int) speedScaled) + (20), 163, 150, 30, 5);
 		}
 		else {
@@ -217,7 +217,7 @@ public class HUDloco extends GuiScreen {
 		/**
 		 * Steam Train have different HUD
 		 */
-		if (loco instanceof SteamTrain) {
+		if (loco instanceof AbstractBoilerLocomotive) {
 			game.renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation,Info.guiPrefix + "loco_hud_steam.png"));
 		}
 		else {
@@ -231,7 +231,7 @@ public class HUDloco extends GuiScreen {
 		/**
 		 * Things are slightly different in Steam HUD render overheat arrow black bar for steam train
 		 */
-		if (!(loco instanceof SteamTrain)) {
+		if (!(loco instanceof AbstractBoilerLocomotive)) {
 			drawTexturedModalRect(58, windowHeight + 37 - ( overheatScaled) + (20), 169, 158, 23, 5);
 		}
 		else {

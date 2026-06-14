@@ -136,6 +136,7 @@ public class PacketHandler
 
 		Traincraft.BannedItems_CHANNEL.registerMessage(PacketSyncBannedItems.Handler.class, PacketSyncBannedItems.class, 29, Side.CLIENT);
 		Traincraft.tcCraftingBenchChannel.registerMessage(PacketUpdateTCBenchPage.Handler.class, PacketUpdateTCBenchPage.class, 30, Side.SERVER);
+		Traincraft.modChannel.registerMessage(PacketTenderStorageMode.Handler.class, PacketTenderStorageMode.class, 31, Side.SERVER);
 	}
 
 	private static final IMessageHandler[] HANDLERS = new IMessageHandler[]{

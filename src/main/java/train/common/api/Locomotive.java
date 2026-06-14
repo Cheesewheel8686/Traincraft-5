@@ -37,6 +37,7 @@ import train.client.MovingTrainSound;
 import train.client.core.handlers.TCKeyHandler;
 import train.common.Traincraft;
 import train.common.adminbook.ServerLogger;
+import train.common.api.locomotive.AbstractBoilerLocomotive;
 import train.common.core.HandleMaxAttachedCarts;
 import train.common.core.handlers.ConfigHandler;
 import train.common.core.handlers.ItemHandler;
@@ -181,7 +182,7 @@ public abstract class Locomotive extends EntityRollingStock implements IInventor
             setAccel(0);
             setBrake(0);
             this.entityCollisionReduction = 0.99F;
-            if (this instanceof SteamTrain) isLocoTurnedOn = true;
+            if (this instanceof AbstractBoilerLocomotive) isLocoTurnedOn = true;
             char[] chars = "abcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
             StringBuilder sb = new StringBuilder(5);
             Random random = new Random();
@@ -491,6 +492,14 @@ public abstract class Locomotive extends EntityRollingStock implements IInventor
         }
     }
 
+    public double getAccel() {
+        if (accelerate != 0) {
+            return accelerate;
+        }
+
+        return setAccel(0);
+    }
+
     /**
      * Set brake rate if rate = 0, default value is used
      *
@@ -515,7 +524,7 @@ public abstract class Locomotive extends EntityRollingStock implements IInventor
         nbttagcompound.setInteger("overheatLevel", getOverheatLevel());
         nbttagcompound.setString("lastRider", lastRider);
         nbttagcompound.setString("destination", destination);
-        if (!(this instanceof SteamTrain)) {
+        if (!(this instanceof AbstractBoilerLocomotive)) {
             nbttagcompound.setBoolean("isLocoTurnedOn", isLocoTurnedOn);
         }
         nbttagcompound.setString("trainID", trainID);
@@ -563,7 +572,7 @@ public abstract class Locomotive extends EntityRollingStock implements IInventor
         setOverheatLevel(ntc.getInteger("overheatLevel"));
         lastRider = ntc.getString("lastRider");
         destination = ntc.getString("destination");
-        if (!(this instanceof SteamTrain)) {
+        if (!(this instanceof AbstractBoilerLocomotive)) {
             isLocoTurnedOn = ntc.getBoolean("isLocoTurnedOn");
         }
         trainID = ntc.getString("trainID");
@@ -2095,6 +2104,9 @@ public abstract class Locomotive extends EntityRollingStock implements IInventor
     }
 
     @Override
+    /**
+     * Unless you are trying to use a different name in the inventory, this will just copy the item name
+     */
     public String getInventoryName()
     {
         return getCommandSenderName();

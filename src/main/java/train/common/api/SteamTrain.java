@@ -10,18 +10,14 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.*;
 import train.common.Traincraft;
 import train.common.api.LiquidManager.StandardTank;
+import train.common.api.locomotive.AbstractBoilerLocomotive;
 import train.common.core.handlers.FuelHandler;
 import train.common.library.GuiIDs;
 
-public abstract class SteamTrain extends Locomotive implements IFluidHandler {
-
-	public int fuelSlot = 1;
-	public int waterSlot = 1;
-	protected int maxTank;
+public abstract class SteamTrain extends AbstractBoilerLocomotive implements IFluidHandler
+{
 	private int maxFuel = 20000;
 	private int update = 8;
-	private StandardTank theTank;
-	private IFluidTank[] tankArray = new IFluidTank[1];
 
 	/**
 	 * 
@@ -54,37 +50,16 @@ public abstract class SteamTrain extends Locomotive implements IFluidHandler {
 
 	private SteamTrain(int capacity, World world, FluidStack filter) {
 		super(world);
-		this.maxTank = getTankCapacity();
 		if (filter == null) {
-			this.theTank = LiquidManager.getInstance().new StandardTank(getTankCapacity());
+			this.coolantTank = LiquidManager.getInstance().new StandardTank(getTankCapacity());
 		} else {
-			this.theTank = LiquidManager.getInstance().new FilteredTank(getTankCapacity(), filter);
+			this.coolantTank = LiquidManager.getInstance().new FilteredTank(getTankCapacity(), filter);
 		}
-		tankArray[0] = theTank;
-		dataWatcher.addObject(4, 0);
+
 		numCargoSlots = 3;
 		numCargoSlots1 = 3;
 		numCargoSlots2 = 3;
 		inventorySize = numCargoSlots + numCargoSlots2 + numCargoSlots1 + fuelSlot + waterSlot;//
-		this.dataWatcher.addObject(23, 0);
-	}
-
-	public int getTankCapacity()
-	{
-		return this.trainSpec.getTankCapacity();
-	}
-
-
-	/**
-	 * returns the waterConsumption for each steam loco default is 200: rand.nextInt(200)==0
-	 * 
-	 * @return
-	 */
-	public int getWaterConsumption() {
-		if (trainSpec != null) {
-			return trainSpec.getWaterConsumption();
-		}
-		return 200;
 	}
 
 	@Override
@@ -96,76 +71,22 @@ public abstract class SteamTrain extends Locomotive implements IFluidHandler {
 		}
 	}
 
-	@Override
-	public void onUpdate() {
-		super.onUpdate();
-		/**
-		 * so the client side knows the water amount
-		 */
-		if (worldObj.isRemote) {
-			return;
-		}
-		if (theTank != null && theTank.getFluid() != null) {
-			this.dataWatcher.updateObject(23, theTank.getFluid().amount);
-			this.dataWatcher.updateObject(4, theTank.getFluid().getFluidID());
-		}
-
-		if (theTank != null && theTank.getFluid() != null && getIsFuelled()) {
-			if (theTank.getFluid().amount <= 1) {
-				motionX *= 0.94;
-				motionZ *= 0.94;
-			}
-		}
-		else if (theTank != null && theTank.getFluid() == null) {
-			this.dataWatcher.updateObject(23, 0);
-			this.dataWatcher.updateObject(4, 0);
-		}
-		if (rand.nextInt(100) == 0 && getWater() > 0 && getIsFuelled()) {
-			drain(ForgeDirection.UNKNOWN, getWaterConsumption() / 5, true);
-		}
-
-		checkInvent(locoInvent[0], locoInvent[1], this);
-	}
-
-	/**
-	 * added for SMP, used by the HUD
-	 * 
-	 * @return
-	 */
-	public int getWater() {
-		return (this.dataWatcher.getWatchableObjectInt(23));
-	}
-
-
-	/**
-	 * used by the GUI
-	 * 
-	 * @return int
-	 */
-	public int getLiquidItemID() {
-		return (this.dataWatcher.getWatchableObjectInt(4));
-	}
-
 	public StandardTank getTank() {
-		return theTank;
+		return coolantTank;
 	}
 
 	@Override
 	protected void writeEntityToNBT(NBTTagCompound nbttagcompound) {
 		super.writeEntityToNBT(nbttagcompound);
-		this.theTank.writeToNBT(nbttagcompound);
+		this.coolantTank.writeToNBT(nbttagcompound);
 		nbttagcompound.setBoolean("canBeAdjusted", canBeAdjusted);
 	}
 
 	@Override
 	protected void readEntityFromNBT(NBTTagCompound nbttagcompound) {
 		super.readEntityFromNBT(nbttagcompound);
-		this.theTank.readFromNBT(nbttagcompound);
+		this.coolantTank.readFromNBT(nbttagcompound);
 		canBeAdjusted = nbttagcompound.getBoolean("canBeAdjusted");
-	}
-
-	public int getCartTankCapacity() {
-		return maxTank;
 	}
 
 	private void placeInInvent(ItemStack itemstack1, SteamTrain loco) {
@@ -202,12 +123,12 @@ public abstract class SteamTrain extends Locomotive implements IFluidHandler {
 			ItemStack result = LiquidManager.getInstance().processContainer(this, 1, this, itemstack); //'this' needs to be the loco inventory, but that's not an inventory it's a Itemstack[]
 			if (result != null) {
 				placeInInvent(result, loco);
-				decrStackSize(1, 1);
 			}
 		}
 	}
 
-	protected void checkInvent(ItemStack locoInvent0, ItemStack locoInvent1, SteamTrain loco) {
+	@Override
+	protected void checkBoilerInventory(ItemStack locoInvent0, ItemStack locoInvent1) {
 		if (!this.canCheckInvent)
 			return;
 
@@ -288,7 +209,7 @@ public abstract class SteamTrain extends Locomotive implements IFluidHandler {
 
 
 		if (locoInvent1 != null) {
-			liquidInSlot(locoInvent1, loco);
+			liquidInSlot(locoInvent1, this);
 			return;
 		}
 		if (getFuel() <= 0) {
@@ -306,30 +227,22 @@ public abstract class SteamTrain extends Locomotive implements IFluidHandler {
 		return (this.fuelTrain * i) / maxFuel;
 	}
 
-	public void setCapacity(int capacity) {
-		this.maxTank = capacity;
-	}
-
-	public int getCapacity() {
-		return this.maxTank;
-	}
-
 	@Override
 	public int fill(ForgeDirection from, FluidStack resource, boolean doFill) {
-		return theTank.fill(resource, doFill);
+		return coolantTank.fill(resource, doFill);
 	}
 
 	@Override
 	public FluidStack drain(ForgeDirection from, FluidStack resource, boolean doDrain) {
-		if (resource == null || !resource.isFluidEqual(theTank.getFluid())) {
+		if (resource == null || !resource.isFluidEqual(coolantTank.getFluid())) {
 			return null;
 		}
-		return theTank.drain(resource.amount, doDrain);
+		return coolantTank.drain(resource.amount, doDrain);
 	}
 
 	@Override
 	public FluidStack drain(ForgeDirection from, int maxDrain, boolean doDrain) {
-		return theTank.drain(maxDrain, doDrain);
+		return coolantTank.drain(maxDrain, doDrain);
 	}
 
 	@Override
@@ -344,14 +257,14 @@ public abstract class SteamTrain extends Locomotive implements IFluidHandler {
 
 	@Override
 	public FluidTankInfo[] getTankInfo(ForgeDirection from) {
-		return new FluidTankInfo[] { theTank.getInfo() };
+		return new FluidTankInfo[] { coolantTank.getInfo() };
 	}
 
 	public FluidStack getFluid() {
-		return theTank.getFluid();
+		return coolantTank.getFluid();
 	}
 
 	public int getFluidAmount() {
-		return theTank.getFluidAmount();
+		return coolantTank.getFluidAmount();
 	}
 }

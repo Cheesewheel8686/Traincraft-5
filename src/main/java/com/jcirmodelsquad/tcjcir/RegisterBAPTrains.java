@@ -16,9 +16,11 @@ import com.jcirmodelsquad.tcjcir.vehicles.rollingstock.tanker.*;
 import com.jcirmodelsquad.tcjcir.vehicles.rollingstock.tender.*;
 import com.jcirmodelsquad.tcjcir.vehicles.rollingstock.workcart.*;
 import net.minecraft.item.Item;
+import train.common.api.stock.TenderStoragePolicy;
 import train.common.library.EnumTrainType;
 import train.common.library.ItemIDs;
 import train.common.library.register.ITrainRecord;
+import train.common.library.register.TenderRecord;
 import train.common.library.register.TrainRecord;
 
 import java.util.LinkedHashMap;
@@ -183,7 +185,9 @@ public class RegisterBAPTrains
 
             // VanderbackTender
             put(ItemIDs.minecartVanderbackTender.item,
-                    new TrainRecord("VanderbackTender", TenderVanderback.class, ItemIDs.minecartVanderbackTender.item)
+                    new TenderRecord("VanderbackTender", TenderVanderback.class, ItemIDs.minecartVanderbackTender.item)
+                            .setTenderStoragePolicy(TenderStoragePolicy.DUAL_CHAMBER_ONLY)
+                            .setSecondaryTankCapacity(7000)
                             .setTrainType(EnumTrainType.Tender)
                             .setMass(2)
                             .setTankCapacity(29000)
@@ -193,7 +197,9 @@ public class RegisterBAPTrains
 
             // SquanderbackTender
             put(ItemIDs.minecartSquanderbackTender.item,
-                    new TrainRecord("SquanderbackTender", TenderSquanderback.class, ItemIDs.minecartSquanderbackTender.item)
+                    new TenderRecord("SquanderbackTender", TenderSquanderback.class, ItemIDs.minecartSquanderbackTender.item)
+                            .setTenderStoragePolicy(TenderStoragePolicy.DUAL_CHAMBER_ONLY)
+                            .setSecondaryTankCapacity(7000)
                             .setTrainType(EnumTrainType.Tender)
                             .setMass(2.1)
                             .setTankCapacity(34000)

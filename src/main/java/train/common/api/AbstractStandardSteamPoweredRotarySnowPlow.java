@@ -31,7 +31,7 @@ public abstract class AbstractStandardSteamPoweredRotarySnowPlow extends SteamTr
         if (worldObj.isRemote || bogieLoco==null) {
             return;
         }
-        checkInvent(locoInvent[0], locoInvent[1], this);
+
         if (fakePlayer == null){
             fakePlayer = new FakePlayer(worldObj);
         }

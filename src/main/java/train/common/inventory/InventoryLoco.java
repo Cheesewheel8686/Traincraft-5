@@ -3,7 +3,6 @@ package train.common.inventory;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Items;
-import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
@@ -15,7 +14,7 @@ import train.common.core.handlers.FuelHandler;
 import train.common.slots.SpecialSlots;
 import train.common.slots.StandardRollingStockSlot;
 
-public class InventoryLoco extends Container {
+public class InventoryLoco extends AbstractTrainContainer {
 	private Locomotive loco;
 	private InventoryPlayer player;
 	private int inventorySize;
@@ -45,14 +44,7 @@ public class InventoryLoco extends Container {
 			addSlotToContainer(new StandardRollingStockSlot((IInventory) entityminecart, i, 80 + l * 18, 54));
 			i++;
 		}
-		for (int i1 = 0; i1 < 3; i1++) {
-			for (int k1 = 0; k1 < 9; k1++) {
-				addSlotToContainer(new Slot(iinventory, k1 + i1 * 9 + 9, 8 + k1 * 18, 84 + i1 * 18));
-			}
-		}
-		for (int j1 = 0; j1 < 9; j1++) {
-			addSlotToContainer(new Slot(iinventory, j1, 8 + j1 * 18, 142));
-		}
+		addPlayerInventory(iinventory);
 	}
 
 	@Override

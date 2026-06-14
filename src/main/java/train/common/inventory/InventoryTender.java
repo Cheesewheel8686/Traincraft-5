@@ -2,54 +2,65 @@ package train.common.inventory;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import train.common.api.EntityRollingStock;
 import train.common.api.Tender;
 import train.common.slots.SlotTender;
+import train.common.slots.SpecialSlots;
 import train.common.slots.StandardRollingStockSlot;
 
-public class InventoryTender extends Container {
+public class InventoryTender extends AbstractTrainContainer {
 
-	private Tender loco;
+	private Tender tender;
 	private InventoryPlayer player;
 	private int inventorySize;
 
 	public InventoryTender(InventoryPlayer iinventory, EntityRollingStock entityminecart) {
 		player = iinventory;
-		loco = (Tender) entityminecart;
-		inventorySize = loco.tenderItems.length;
+		tender = (Tender) entityminecart;
+		inventorySize = tender.tenderItems.length;
 		int i = 1;
 		int numCargoSlots = 5;
-		addSlotToContainer(new StandardRollingStockSlot((IInventory) entityminecart, 0, 8, 53));
+		SpecialSlots specialSlots = SpecialSlots.getInstance();
+		addSlotToContainer(specialSlots.new SlotFilteredLiquid(
+				(IInventory) entityminecart, 0, 8, 53, tender
+		));
 
-		for (int j = 0; j < numCargoSlots; j++) {
-			addSlotToContainer(new SlotTender((IInventory) entityminecart, i, 44 + j * 18, 18));
-			i++;
-		}
-		for (int k = 0; k < numCargoSlots; k++) {
-			addSlotToContainer(new SlotTender((IInventory) entityminecart, i, 44 + k * 18, 36));
-			i++;
-		}
-		for (int l = 0; l < numCargoSlots; l++) {
-			addSlotToContainer(new SlotTender((IInventory) entityminecart, i, 44 + l * 18, 54));
-			i++;
-		}
-		for (int i1 = 0; i1 < 3; i1++) {
-			for (int k1 = 0; k1 < 9; k1++) {
-				addSlotToContainer(new StandardRollingStockSlot(iinventory, k1 + i1 * 9 + 9, 8 + k1 * 18, 84 + i1 * 18));
+		switch (tender.getStorageMode())
+		{
+			case DUAL_CHAMBER:
+				addSlotToContainer(specialSlots.new SlotFilteredLiquid(
+						(IInventory) entityminecart, 1, 8, 18, tender
+				));
+				addSlotToContainer(new StandardRollingStockSlot((IInventory) entityminecart, 2, 44, 18));
+				addSlotToContainer(new StandardRollingStockSlot((IInventory) entityminecart, 3, 44, 36));
+				addSlotToContainer(new StandardRollingStockSlot((IInventory) entityminecart, 4, 44, 53));
+			break;
+			default:
+			{
+				for (int j = 0; j < numCargoSlots; j++) {
+					addSlotToContainer(new SlotTender((IInventory) entityminecart, i, 44 + j * 18, 18));
+					i++;
+				}
+				for (int k = 0; k < numCargoSlots; k++) {
+					addSlotToContainer(new SlotTender((IInventory) entityminecart, i, 44 + k * 18, 36));
+					i++;
+				}
+				for (int l = 0; l < numCargoSlots; l++) {
+					addSlotToContainer(new SlotTender((IInventory) entityminecart, i, 44 + l * 18, 54));
+					i++;
+				}
 			}
 		}
-		for (int j1 = 0; j1 < 9; j1++) {
-			addSlotToContainer(new StandardRollingStockSlot(iinventory, j1, 8 + j1 * 18, 142));
-		}
+
+		addPlayerInventory(iinventory);
 	}
 
 	@Override
 	public boolean canInteractWith(EntityPlayer var1) {
-		return !loco.isDead;
+		return !tender.isDead;
 	}
 
 	@Override
@@ -65,7 +76,25 @@ public class InventoryTender extends Container {
 				}
 			}
 			else {
-				if (!mergeItemStack(itemstack1, 0, inventorySize, false)) {
+				Slot primaryLiquidSlot = (Slot) inventorySlots.get(0);
+
+				if (primaryLiquidSlot.isItemValid(itemstack1)) {
+					if (!mergeItemStack(itemstack1, 0, 1, false)) {
+						return null;
+					}
+				}
+				else if (tender.isDualChamberMode()
+						&& ((Slot) inventorySlots.get(1)).isItemValid(itemstack1)) {
+					if (!mergeItemStack(itemstack1, 1, 2, false)) {
+						return null;
+					}
+				}
+				else if (!mergeItemStack(
+						itemstack1,
+						tender.isDualChamberMode() ? 2 : 1,
+						inventorySize,
+						false
+				)) {
 					return null;
 				}
 			}
@@ -73,7 +102,7 @@ public class InventoryTender extends Container {
 
 				slot.putStack(null);
 				if (i < inventorySize) {
-					loco.tenderItems[i] = null;
+					tender.tenderItems[i] = null;
 				}
 			}
 			else {

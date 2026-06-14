@@ -198,7 +198,7 @@ public class GuiTankEngine extends GuiContainer {
 
 		if (loco instanceof SteamTrain) {
 
-			int load = (((SteamTrain) loco).getWater());
+			int load = (((SteamTrain) loco).getWaterAmount());
 			int lo = Math.abs(((load * 50) / (((SteamTrain) loco).getCartTankCapacity())));
 
 			if (((SteamTrain) loco).getLiquidItemID() == LiquidManager.WATER_FILTER.getFluidID()) {

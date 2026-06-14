@@ -3,14 +3,13 @@ package com.jcirmodelsquad.tcjcir.vehicles.locomotives.steam;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraft.world.World;
 import train.common.api.LiquidManager;
-import train.common.api.SteamTrain;
+import train.common.api.locomotive.AbstractLiquidFiredSteamEngine;
 import train.common.core.util.TraincraftUtil;
 import train.common.enums.LockoutGroup;
 import train.common.library.EnumSounds;
-
 import train.common.library.sounds.SoundRecord;
 
-public class SteamP01a extends SteamTrain {
+public class SteamP01a extends AbstractLiquidFiredSteamEngine {
 	@Override
 	public SoundRecord getSoundRecord()
 	{
