@@ -72,9 +72,32 @@ public class BlockTCRail extends Block {
 		TileTCRail tileEntity = (TileTCRail) world.getTileEntity(i, j, k);
 
 		// Check if track is paired to any detectors. If so, unpair it before breaking.
-		if (tileEntity != null && !tileEntity.getPairedDetectors().isEmpty()) {
+		if (tileEntity != null && !tileEntity.getPairedDetectors().isEmpty())
+		{
+			EntityPlayer player = world.getClosestPlayer(
+					i + 0.5D,
+					j + 0.5D,
+					k + 0.5D,
+					45.0D // search radius
+			);
+
+			if (player != null)
+			{
+				String detectorCords = "";
+				for (TileTrainDetector trainDetector : tileEntity.getPairedDetectors())
+				{
+					detectorCords += "X:" + trainDetector.xCoord + " Y:" + trainDetector.yCoord + " Z:" +trainDetector.zCoord + ", ";
+				}
+				detectorCords = detectorCords.substring(0, detectorCords.length() - 2);
+
+				player.addChatMessage(new ChatComponentText("Track was unpaired from " +  detectorCords));
+			}
+
 			for (TileTrainDetector trainDetector : tileEntity.getPairedDetectors())
+			{
 				trainDetector.getPairedTrack().remove(tileEntity);
+			}
+
 			tileEntity.getPairedDetectors().clear();
 		}
 
