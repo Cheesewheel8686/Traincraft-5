@@ -104,11 +104,14 @@ public class PacketAdminBookClient implements IMessage
                             sb.append(document.substring(document.indexOf("<uuid>") + 6, document.indexOf("</uuid>")).substring(0, 19));
                             sb.append(",");
                             sb.append(document.substring(document.indexOf("<uuid>") + 6, document.indexOf("</uuid>")).substring(19));
-                            sb.append(",Last Known Position:,X:");
+                            sb.append(",Last Known Position:,");
+                            sb.append("X:,");
                             sb.append(document.substring(document.indexOf("<pos_x>") + 7, document.indexOf("</pos_x>")));
-                            sb.append("- Y:");
+                            sb.append(",");
+                            sb.append("Y:,");
                             sb.append(document.substring(document.indexOf("<pos_y>") + 7, document.indexOf("</pos_y>")));
-                            sb.append("- Z:");
+                            sb.append(",");
+                            sb.append("Z:,");
                             sb.append(document.substring(document.indexOf("<pos_z>") + 7, document.indexOf("</pos_z>")));
                             if (document.contains("<fuel>"))
                             {
@@ -168,7 +171,7 @@ public class PacketAdminBookClient implements IMessage
                     {
                         for (File file : folder)
                         {
-                            if (file != null)
+                            if (shouldShowInAdminBook(message.id, file))
                             {
                                 sb.append(message.id);
                                 if(!message.id.equals(""))
@@ -195,6 +198,48 @@ public class PacketAdminBookClient implements IMessage
                 }
             }
             return null;
+        }
+
+        private static boolean shouldShowInAdminBook(String currentPath, File file)
+        {
+            if (file == null)
+            {
+                return false;
+            }
+            if (currentPath == null || currentPath.equals(""))
+            {
+                if (file.getName().equalsIgnoreCase("lockout"))
+                {
+                    return false;
+                }
+                return file.isDirectory() && hasStockBackups(file);
+            }
+            return file.isFile() && isStockBackupFile(file);
+        }
+
+        private static boolean hasStockBackups(File folder)
+        {
+            File[] files = folder.listFiles();
+            if (files == null)
+            {
+                return false;
+            }
+            for (File file : files)
+            {
+                if (file != null && file.isFile() && isStockBackupFile(file))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static boolean isStockBackupFile(File file)
+        {
+            String name = file.getName();
+            int uuidStart = name.lastIndexOf("_") + 1;
+            int extensionStart = name.lastIndexOf(".txt");
+            return extensionStart == name.length() - 4 && uuidStart > 0 && extensionStart - uuidStart == 36;
         }
     }
 }

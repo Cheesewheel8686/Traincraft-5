@@ -14,24 +14,45 @@ import train.common.core.network.AdminBook.PacketAdminBookToggleChunkLoading;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * <h1>Transport GUI</h1>
  * used to draw the GUI for trains and rollingstock (the menu with the inventory).
  * @author Eternal Blue Flame
  */
-public class GUIAdminBook extends GuiScreen {
+public class GUIAdminBook extends GuiScreen
+{
     /**the amount to scale the GUI by, same as vanilla*/
     private static final float guiScaler = 0.00390625F;
+    private static final int PANEL_WIDTH = 420;
+    private static final int PANEL_HEIGHT = 220;
+    private static final int ROW_HEIGHT = 22;
+    private static final int ROWS_PER_PAGE = 7;
+    private static final int PLAYER_COLUMNS = 2;
+    private static final int BUTTON_SEARCH_CLEAR = -2;
+    private static final int BUTTON_CLONE_INVENTORY = -1;
+    private static final int BUTTON_DELETE_ENTRY = 0;
+    private static final int BUTTON_BACK = 1;
+    private static final int BUTTON_NEXT_PAGE = 2;
+    private static final int BUTTON_CLONE_AND_DELETE = 3;
+    private static final int BUTTON_TOGGLE_HANDLED = 4;
+    private static final int BUTTON_STOP_CHUNK_LOADING = 5;
+    private static final int BUTTON_TOGGLE_ROW_HANDLED_BASE = 10000;
+    private static final int BUTTON_OPEN_ROW_BASE = 20000;
+    private static final Set<String> handledStock = new HashSet<String>();
+
     private String[] list;
-    static boolean isTrainPage = false;
+    private boolean isTrainPage = false;
     private int guiLeft;
     private int guiTop;
     private int page=0;
     private List<ItemStack> items = new ArrayList<ItemStack>();
     private String searchQuery = "";
     private int searchIndex = 0;
+    private boolean pageTurnConsumed = false;
 
     public GUIAdminBook(String csv){
         //if its the xml enable train page mode.
@@ -50,43 +71,64 @@ public class GUIAdminBook extends GuiScreen {
 
 
     @Override
-    public void actionPerformed(GuiButton button) {
+    public void actionPerformed(GuiButton button)
+    {
+        if (button.id >= BUTTON_OPEN_ROW_BASE) {
+            int listIndex = button.id - BUTTON_OPEN_ROW_BASE;
+            if (listIndex >= 0 && listIndex < list.length) {
+                Traincraft.keyChannel.sendToServer(new PacketAdminBookClient(list[listIndex], Minecraft.getMinecraft().thePlayer.getEntityId()));
+            }
+            return;
+        }
+        if (button.id >= BUTTON_TOGGLE_ROW_HANDLED_BASE) {
+            int listIndex = button.id - BUTTON_TOGGLE_ROW_HANDLED_BASE;
+            if (listIndex >= 0 && listIndex < list.length) {
+                toggleHandled(list[listIndex]);
+                initGui();
+            }
+            return;
+        }
 
-        switch (button.id){
-            case -2: { // Search query button, used to clear query.
+        switch (button.id)
+        {
+            case BUTTON_SEARCH_CLEAR:
+            { // Search query button, used to clear query.
                 searchQuery = "";
                 searchIndex = 0;
-                page = 0;
-                buttonList = new ArrayList();
+                setPage(0);
                 initGui();
                 break;
             }
-            case -1:{ // Clone inventory button.
+            case BUTTON_CLONE_INVENTORY:
+            { // Clone inventory button.
                 Traincraft.keyChannel.sendToServer(new PacketAdminBookClient( "0:"+list[0].substring(1), Minecraft.getMinecraft().thePlayer.getEntityId()));//tell server to drop items
                 break;
             }
-            case 0:{ // Delete entry button.
+            case BUTTON_DELETE_ENTRY:
+            { // Delete entry button.
                 Traincraft.keyChannel.sendToServer(new PacketAdminBookClient( "1:"+list[0].substring(1), Minecraft.getMinecraft().thePlayer.getEntityId()));//tell server to drop items
                 break;
             }
-            case 1:{ // Back button.
-                if (!isTrainPage){
-                    page--;
-                    buttonList = new ArrayList();
-                    initGui();
-                } else {
+            case BUTTON_BACK:
+            { // Back button.
+                if (!isTrainPage)
+                {
+                    turnPage(-1);
+                }
+                else
+                {
                     Traincraft.keyChannel.sendToServer(new PacketAdminBookClient( list[1], Minecraft.getMinecraft().thePlayer.getEntityId()));//tell server to send a new gui
                 }
 
                 break;
             }
-            case 2:{ // Next page button.
-                page++;
-                buttonList = new ArrayList();
-                initGui();
+            case BUTTON_NEXT_PAGE:
+            { // Next page button.
+                turnPage(1);
                 break;
             }
-            case 3:{
+            case BUTTON_CLONE_AND_DELETE:
+            {
                 if(list[0]!=null && list[0].length()>1) {
                     Traincraft.keyChannel.sendToServer(new PacketAdminBookClient("0:" + list[0].substring(1), Minecraft.getMinecraft().thePlayer.getEntityId()));//tell server to drop items
                     Traincraft.keyChannel.sendToServer(new PacketAdminBookClient("1:" + list[0].substring(1), Minecraft.getMinecraft().thePlayer.getEntityId()));//tell server to drop items
@@ -94,13 +136,16 @@ public class GUIAdminBook extends GuiScreen {
                 break;
             }
 
-            case 5:
+            case BUTTON_TOGGLE_HANDLED:
+                toggleHandled(getCurrentStockPath());
+                initGui();
+                break;
+            case BUTTON_STOP_CHUNK_LOADING:
                 Traincraft.toggleChunkLoadingChannel.sendToServer(new PacketAdminBookToggleChunkLoading(false));//tell server to drop items
             break;
 
-
-            default:{
-                Traincraft.keyChannel.sendToServer(new PacketAdminBookClient( list[button.id-3], Minecraft.getMinecraft().thePlayer.getEntityId()));//tell server to send a new gui
+            default:
+            {
                 break;
             }
         }
@@ -111,73 +156,26 @@ public class GUIAdminBook extends GuiScreen {
     public void initGui()
     {
         super.initGui();
+        this.buttonList.clear();
         if(list==null)
         {
             return;
         }
 
-        this.buttonList.add(new GuiButton(5, guiLeft+10, guiTop+100 , 70, 20, "Stop ALL Locomotive Chunk Loading"));
-
-        this.guiLeft = (this.width - 176) / 2;
-        this.guiTop = (this.height - 166) / 2;
-        GuiButton button;
-        boolean drawingPlayerList = true;
+        this.guiLeft = (this.width - getPanelWidth()) / 2;
+        this.guiTop = (this.height - PANEL_HEIGHT) / 2;
+        clampPage();
 
         if(!isTrainPage)
         {
-            int index=0;
-            //only show 6 entries per page
-            for (int i = 6 * page; i < 6+(6*page) && i<list.length; i++)
-            {
-                button = new GuiButton(i+3, guiLeft-80, guiTop+20 +(index*18), 140, 20, "");
-                if (list[i].isEmpty()) {
-                    button.displayString = "back";
-                } else {
-                    if (list[i].contains("_")) {
-                        button.displayString = list[i].substring(list[i].indexOf("~")+1,list[i].lastIndexOf("_"));
-                    } else {
-                        button.displayString = list[i];
-                    }
-                }
-                if (list[i].lastIndexOf("_")>0 && list[i].indexOf(".txt")>0) { // Add cart entity UUIDs.
-                    this.buttonList.add(new GuiButton(i + 3, guiLeft + 70, guiTop + 20 + (index * 18), 220, 20,
-                            list[i].substring(list[i].lastIndexOf("_")+1, list[i].indexOf(".txt"))));
-                    drawingPlayerList = false;
-                }
-                if (drawingPlayerList) {
-                    if ((!searchQuery.equals("")) && (list[i].startsWith(searchQuery.toLowerCase()))) {
-                        button.packedFGColour = 7855479;
-                    }
-                }
-                this.buttonList.add(button);
-                index++;
-            }
-
-            if(list.length-6-(page*6)>0)
-            {
-                //draw next
-                this.buttonList.add(new GuiButton(2, guiLeft-70, guiTop+140 , 70, 20, "next page"));
-            }
-            if (page>0)
-            {
-                this.buttonList.add(new GuiButton(1, guiLeft+10, guiTop+140 , 70, 20, "back"));
-            }
-            if (drawingPlayerList) {
-                GuiButton searchButton = new GuiButton(-2, guiLeft + 80, guiTop + 20, 70, 20, fontRendererObj.trimStringToWidth(searchQuery, 68));
-                searchButton.packedFGColour = 16777215; // 12320768;
-                this.buttonList.add(searchButton);
-            }
+            initListButtons();
         }
         else
         {
             try
             {
-                //draw back
-                this.buttonList.add(new GuiButton(-1,guiLeft+85,guiTop+140,90,20,"clone inventory"));
-                this.buttonList.add(new GuiButton(0,guiLeft+5,guiTop+140,70,20,"delete entry"));
-                this.buttonList.add(new GuiButton(3,guiLeft+180,guiTop+140,80,20,"clone & delete"));
-                this.buttonList.add(new GuiButton(1, guiLeft-70, guiTop+140 , 70, 20, "back"));
-                items = ServerLogger.getItems(list[9]);
+                initStockButtons();
+                items = ServerLogger.getItems(getInventoryItemsDocument());
             }
             catch (Exception e)
             {
@@ -189,26 +187,298 @@ public class GUIAdminBook extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float par3){
+        drawDefaultBackground();
+        drawPanel();
         super.drawScreen(mouseX, mouseY, par3);
         if(list==null){
             return;
         }
-        if(isTrainPage){
-            for (int i = 2+(6 * page); i < Math.min(list.length, 9); i++) {//only show 6 entries per page
-                drawTextOutlined(fontRendererObj,  list[(page*i)+i],  guiLeft-70, guiTop-16 +(i*16), 16777215);
+        if(isTrainPage) {
+            drawStockDetails(mouseX, mouseY);
+        } else {
+            drawListDetails();
+        }
+
+    }
+
+    private void initListButtons() {
+        boolean drawingPlayerList = isPlayerList();
+        int listWidth = getPanelWidth();
+        int rowLeft = guiLeft + 10;
+        int rowTop = guiTop + 38;
+        int openWidth = drawingPlayerList ? (listWidth - 30) / PLAYER_COLUMNS : listWidth - 56;
+        int entriesPerPage = getEntriesPerPage();
+        int start = entriesPerPage * page;
+        int end = Math.min(start + entriesPerPage, list.length);
+
+        for (int i = start; i < end; i++) {
+            int offset = i - start;
+            int column = drawingPlayerList ? offset / ROWS_PER_PAGE : 0;
+            int row = drawingPlayerList ? offset % ROWS_PER_PAGE : offset;
+            String path = list[i];
+            String label = getRowTitle(path);
+            int buttonX = rowLeft + (column * (openWidth + 10));
+            GuiButton button = new GuiButton(BUTTON_OPEN_ROW_BASE + i, buttonX, rowTop + (row * ROW_HEIGHT), openWidth, 20, label);
+
+            if (drawingPlayerList && !searchQuery.equals("") && path.startsWith(searchQuery.toLowerCase())) {
+                button.packedFGColour = 7855479;
             }
-            drawTextOutlined(fontRendererObj, I18n.format("container.inventory", new Object()),  guiLeft+80, guiTop+10, 16777215);
-            int index=0;
-            for (int y =0; y<6; y++){
-                for(int x=0; x<9; x++){
-                    if(items.size()>index && items.get(index) !=null) {
-                        func_146977_a(items.get(index), guiLeft + 80 + (x * 16), guiTop + 26 + (y * 16));
-                    }
-                    index++;
-                }
+
+            this.buttonList.add(button);
+
+            if (!drawingPlayerList && isStockEntry(path)) {
+                this.buttonList.add(new GuiButton(BUTTON_TOGGLE_ROW_HANDLED_BASE + i, rowLeft + openWidth + 6,
+                        rowTop + (row * ROW_HEIGHT), 30, 20, getHandledLabel(path)));
             }
         }
 
+        int footerY = guiTop + PANEL_HEIGHT - 28;
+        if(page > 0) {
+            this.buttonList.add(new GuiButton(BUTTON_BACK, guiLeft + 10, footerY, 70, 20, "back"));
+        }
+        if(list.length - entriesPerPage - (page * entriesPerPage) > 0) {
+            this.buttonList.add(new GuiButton(BUTTON_NEXT_PAGE, guiLeft + getPanelWidth() - 80, footerY, 70, 20, "next"));
+        }
+        if (drawingPlayerList && !searchQuery.equals("")) {
+            GuiButton searchButton = new GuiButton(BUTTON_SEARCH_CLEAR, guiLeft + (getPanelWidth() - 120) / 2, footerY, 120, 20,
+                    "clear: " + fontRendererObj.trimStringToWidth(searchQuery, 72));
+            searchButton.packedFGColour = 16777215;
+            this.buttonList.add(searchButton);
+        }
+
+        this.buttonList.add(new GuiButton(BUTTON_STOP_CHUNK_LOADING, guiLeft + (getPanelWidth() - 190) / 2, guiTop + PANEL_HEIGHT + 6,
+                190, 20, "Stop ALL Locomotive Chunk Loading"));
+    }
+
+    private void initStockButtons() {
+        int footerY = guiTop + PANEL_HEIGHT - 28;
+        this.buttonList.add(new GuiButton(BUTTON_BACK, guiLeft + 10, footerY, 54, 20, "back"));
+        this.buttonList.add(new GuiButton(BUTTON_DELETE_ENTRY, guiLeft + 70, footerY, 78, 20, "delete entry"));
+        this.buttonList.add(new GuiButton(BUTTON_CLONE_INVENTORY, guiLeft + 154, footerY, 98, 20, "clone inventory"));
+        this.buttonList.add(new GuiButton(BUTTON_CLONE_AND_DELETE, guiLeft + 258, footerY, 92, 20, "clone & delete"));
+        this.buttonList.add(new GuiButton(BUTTON_TOGGLE_HANDLED, guiLeft + 356, footerY, 54, 20, getHandledLabel(getCurrentStockPath())));
+    }
+
+    private void drawPanel() {
+        int panelWidth = getPanelWidth();
+        drawRect(guiLeft - 2, guiTop - 2, guiLeft + panelWidth + 2, guiTop + PANEL_HEIGHT + 2, 0xCC111111);
+        drawRect(guiLeft, guiTop, guiLeft + panelWidth, guiTop + PANEL_HEIGHT, 0xAA2B2B2B);
+        drawRect(guiLeft, guiTop, guiLeft + panelWidth, guiTop + 28, 0xCC000000);
+    }
+
+    private void drawListDetails() {
+        boolean drawingPlayerList = isPlayerList();
+        int titleColor = 0xFFFFFF;
+        String title = drawingPlayerList ? "Admin Book: Players" : "Admin Book: Rollingstock";
+        drawCenteredString(fontRendererObj, title, guiLeft + getPanelWidth() / 2, guiTop + 8, titleColor);
+
+        String status;
+        if (drawingPlayerList)
+        {
+            status = "Page " + (page + 1) + " / " + Math.max(1, getPageCount()) + " - " + list.length + " entries";
+            status = searchQuery.equals("") ? status + " - type to search" : status + " - Search: " + searchQuery;
+        }
+        else
+        {
+            status = "Page " + (page + 1) + " / " + Math.max(1, getPageCount()) + " - " + (list.length - 1) + " entries";
+            status = status + " - [x] marks handled";
+        }
+        drawCenteredString(fontRendererObj, status, guiLeft + getPanelWidth() / 2, guiTop + 24, 0xD0D0D0);
+    }
+
+    private void drawStockDetails(int mouseX, int mouseY) {
+        drawCenteredString(fontRendererObj, "Admin Book: Stock Backup", guiLeft + getPanelWidth() / 2, guiTop + 8, 0xFFFFFF);
+        drawTextOutlined(fontRendererObj, "Status: " + (handledStock.contains(getCurrentStockPath()) ? "Handled" : "Needs review"), guiLeft + 12, guiTop + 34, 16777215);
+
+        drawDetailLine("Delegate:", getDetailValue("Delegate:"), guiTop + 58);
+        drawUuidDetail(guiTop + 82);
+        drawTextOutlined(fontRendererObj, "Last Pos:", guiLeft + 12, guiTop + 124, 16777215);
+        drawDetailLine("X:", getDetailValue("X:"), guiTop + 134);
+        drawDetailLine("Y:", getDetailValue("Y:"), guiTop + 144);
+        drawDetailLine("Z:", getDetailValue("Z:"), guiTop + 154);
+
+        drawTextOutlined(fontRendererObj, I18n.format("container.inventory", new Object()), guiLeft + 278, guiTop + 34, 16777215);
+        int index=0;
+        for (int y =0; y<6; y++){
+            for(int x=0; x<9; x++){
+                if(items.size()>index && items.get(index) !=null) {
+                    int itemX = guiLeft + 258 + (x * 16);
+                    int itemY = guiTop + 50 + (y * 16);
+                    func_146977_a(items.get(index), itemX, itemY);
+                    if (mouseX >= itemX && mouseX < itemX + 16 && mouseY >= itemY && mouseY < itemY + 16) {
+                        renderToolTip(items.get(index), mouseX, mouseY);
+                    }
+                }
+                index++;
+            }
+        }
+    }
+
+    private int getPanelWidth() {
+        return Math.min(PANEL_WIDTH, Math.max(260, this.width - 20));
+    }
+
+    private int getPageCount() {
+        int entriesPerPage = getEntriesPerPage();
+        return (list.length + entriesPerPage - 1) / entriesPerPage;
+    }
+
+    private void setPage(int newPage) {
+        page = newPage;
+        clampPage();
+    }
+
+    private void turnPage(int direction) {
+        if (pageTurnConsumed) {
+            return;
+        }
+        int oldPage = page;
+        setPage(page + direction);
+        if (page != oldPage) {
+            pageTurnConsumed = true;
+            initGui();
+        }
+    }
+
+    private void clampPage() {
+        int pageCount = Math.max(1, getPageCount());
+        if (page < 0) {
+            page = 0;
+        } else if (page >= pageCount) {
+            page = pageCount - 1;
+        }
+    }
+
+    private int getEntriesPerPage() {
+        return isPlayerList() ? ROWS_PER_PAGE * PLAYER_COLUMNS : ROWS_PER_PAGE;
+    }
+
+    private boolean isPlayerList() {
+        for (String entry : list) {
+            if (isStockEntry(entry)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isStockEntry(String entry) {
+        return entry != null && entry.lastIndexOf("_") > 0 && entry.indexOf(".txt") > 0;
+    }
+
+    private String getRowTitle(String entry) {
+        if (entry == null || entry.isEmpty()) {
+            return "back";
+        }
+        if (isStockEntry(entry)) {
+            String fileName = entry.substring(entry.lastIndexOf("/") + 1);
+            int nameEnd = fileName.lastIndexOf("_");
+            if (nameEnd > 0) {
+                String stockName = fileName.substring(0, nameEnd).replace("~", ":");
+                return fontRendererObj.trimStringToWidth(stockName + " - " + getRowUuid(entry), getPanelWidth() - 84);
+            }
+        }
+        int width = isPlayerList() ? ((getPanelWidth() - 30) / PLAYER_COLUMNS) - 8 : getPanelWidth() - 28;
+        return fontRendererObj.trimStringToWidth(entry, width);
+    }
+
+    private String getRowUuid(String entry) {
+        if (!isStockEntry(entry)) {
+            return "";
+        }
+        return entry.substring(entry.lastIndexOf("_") + 1, entry.indexOf(".txt"));
+    }
+
+    private String getHandledLabel(String stockPath) {
+        return handledStock.contains(stockPath) ? "[x]" : "[ ]";
+    }
+
+    private String getCurrentStockPath() {
+        if (list != null && list.length > 0 && list[0] != null && list[0].length() > 1) {
+            return list[0].substring(1);
+        }
+        return "";
+    }
+
+    private String getInventoryDocument() {
+        if (list == null) {
+            return "";
+        }
+        for (String entry : list) {
+            if (entry != null && entry.contains("<inventory>")) {
+                return entry.substring(entry.indexOf("<inventory>"));
+            }
+        }
+        return "";
+    }
+
+    private String getInventoryItemsDocument() {
+        String delegate = getDetailValue("Delegate:");
+        String inventory = getInventoryDocument();
+        if (delegate.length() == 0) {
+            return inventory;
+        }
+        return "<delegate>" + delegate + "</delegate>" + inventory;
+    }
+
+    private String getDetailValue(String label) {
+        if (list == null) {
+            return "";
+        }
+        for (int i = 0; i < list.length - 1; i++) {
+            if (label.equals(list[i])) {
+                return stripInventory(list[i + 1]);
+            }
+        }
+        return "";
+    }
+
+    private String stripInventory(String value) {
+        if (value == null) {
+            return "";
+        }
+        int inventoryStart = value.indexOf("<inventory>");
+        return inventoryStart >= 0 ? value.substring(0, inventoryStart) : value;
+    }
+
+    private String getStockUuid() {
+        String uuid = getDetailValue("UUID:");
+        if (uuid.length() < 36 && list != null) {
+            for (int i = 0; i < list.length; i++) {
+                if ("UUID:".equals(list[i]) && i + 2 < list.length) {
+                    uuid = list[i + 1] + list[i + 2];
+                    break;
+                }
+            }
+        }
+        return uuid;
+    }
+
+    private void drawDetailLine(String label, String value, int y) {
+        drawTextOutlined(fontRendererObj, label, guiLeft + 12, y, 16777215);
+        drawTextOutlined(fontRendererObj, fontRendererObj.trimStringToWidth(value, 188), guiLeft + 100, y, 16777215);
+    }
+
+    private void drawUuidDetail(int y) {
+        String uuid = getStockUuid();
+        drawTextOutlined(fontRendererObj, "UUID:", guiLeft + 12, y, 16777215);
+        if (uuid.length() > 18) {
+            drawTextOutlined(fontRendererObj, uuid.substring(0, 18), guiLeft + 100, y, 16777215);
+            drawTextOutlined(fontRendererObj, uuid.substring(18), guiLeft + 100, y + 14, 16777215);
+        } else {
+            drawTextOutlined(fontRendererObj, uuid, guiLeft + 100, y, 16777215);
+        }
+    }
+
+    private void toggleHandled(String stockPath) {
+        if (stockPath == null || stockPath.length() == 0 || !isStockEntry(stockPath)) {
+            return;
+        }
+        if (handledStock.contains(stockPath)) {
+            handledStock.remove(stockPath);
+        } else {
+            handledStock.add(stockPath);
+        }
     }
 
     public static void drawTextOutlined(FontRenderer font, String string, int x, int y, int color){
@@ -277,6 +547,12 @@ public class GUIAdminBook extends GuiScreen {
     }
 
     @Override
+    protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        super.mouseMovedOrUp(mouseX, mouseY, state);
+        pageTurnConsumed = false;
+    }
+
+    @Override
     public void keyTyped(char eventChar, int eventKey) {
         if (!isTrainPage) {
             if (eventKey == 1) { // If "ESC", exit from the GUI.
@@ -284,7 +560,7 @@ public class GUIAdminBook extends GuiScreen {
                     this.mc.displayGuiScreen(null);
                     this.mc.setIngameFocus();
                 } else { // If there is a search query, clear it.
-                    page = 0;
+                    setPage(0);
                     searchQuery = "";
                     searchIndex = 0;
                 }
@@ -302,9 +578,8 @@ public class GUIAdminBook extends GuiScreen {
                 if (searchIndex < 0) {
                     searchIndex = Math.abs(searchIndex) - 1;
                 }
-                page = searchIndex / 6;
+                setPage(searchIndex / getEntriesPerPage());
             }
-            buttonList = new ArrayList();
             initGui();
         }
     }
