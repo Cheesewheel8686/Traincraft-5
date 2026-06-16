@@ -76,7 +76,7 @@ public class WorldEvents{
 	public void chunkUnloadEvent(ChunkEvent.Unload event){
 		for(Object o : event.getChunk().entityLists){
 			if (o instanceof EntityJukeBoxCart){
-				((EntityJukeBoxCart) o).player.setVolume(0);
+				((EntityJukeBoxCart) o).player.setGain(0);
 			}
 		}
 	}

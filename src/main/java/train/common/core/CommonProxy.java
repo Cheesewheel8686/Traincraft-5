@@ -27,7 +27,7 @@ import train.common.api.LiquidTank;
 import train.common.api.Tender;
 import train.common.containers.*;
 import train.common.core.handlers.*;
-import train.common.core.util.MP3Player;
+import train.common.core.util.ReplacementStreamPlayer;
 import train.common.entity.digger.EntityRotativeDigger;
 import train.common.entity.rollingStock.EntityJukeBoxCart;
 import train.common.entity.rollingStock.EntityTracksBuilder;
@@ -60,7 +60,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CommonProxy implements IGuiHandler {
-	public static List<MP3Player> playerList = new ArrayList<MP3Player>();
+	public static List<ReplacementStreamPlayer> playerList = new ArrayList<ReplacementStreamPlayer>();
 	public static boolean debug = false;
 
 	public void throwAlphaException() {
@@ -309,8 +309,8 @@ public class CommonProxy implements IGuiHandler {
 	public void registerVillagerSkin(int villagerId, String textureName) {}
 
 	public static void killAllStreams() {
-		for (MP3Player p : playerList) {
-			p.stop();
+		for (ReplacementStreamPlayer p : playerList) {
+			p.stopPlayer();
 		}
 	}
 

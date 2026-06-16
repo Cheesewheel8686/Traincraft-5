@@ -22,6 +22,7 @@ buildscript {
 
 apply plugin: 'forge'
 apply plugin: 'idea'
+
 sourceCompatibility = targetCompatibility = "1.8"
 compileJava { sourceCompatibility = targetCompatibility = "1.8" }
 
@@ -37,6 +38,11 @@ version = "3.1.9.2"
 group= "src.train" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "Fox-Traincraft"
 
+configurations {
+    shade
+    compile.extendsFrom shade
+}
+
 minecraft {
     version = "1.7.10-10.13.4.1614-1.7.10"
     runDir = "run"
@@ -49,10 +55,14 @@ repositories {
         name "ChickenBones"
         url "http://chickenbones.net/maven/"
     }
-	   maven { 
+   maven {
         url = "http://maven.cil.li/"
     }
+    maven {
+        url "https://jitpack.io"
+    }
 }
+
 
 dependencies {
     repositories {
@@ -76,6 +86,15 @@ dependencies {
 	compile "codechicken:CodeChickenCore:1.7.10-1.0.7.47:dev"
 	compile "codechicken:NotEnoughItems:1.7.10-1.0.5.120:dev"
     compile "codechicken:ForgeMultipart:1.7.10-1.2.0.345:dev"
+    //libraries for replacing the jukebox player. The top one is the one we actually use. The rest are for file types and various other things within java-stream-player
+    shade 'com.github.goxr3plus:java-stream-player:10.0.2'
+    shade 'com.googlecode.soundlibs:mp3spi:1.9.5.4'
+    shade 'org.jflac:jflac-codec:1.5.2'
+    shade 'com.googlecode.soundlibs:vorbisspi:1.0.3.3'
+    shade 'com.googlecode.soundlibs:tritonus-share:0.3.7.4'
+    shade 'com.googlecode.soundlibs:jorbis:0.0.17'
+    shade 'com.github.goxr3plus:jaudiotagger:2.2.7'
+    shade 'commons-io:commons-io:2.7'
     compile fileTree(dir: 'libs', include: ['*.jar'])
     // real examples
     //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
@@ -98,6 +117,42 @@ repositories {
 
 dependencies {
     compile "mcp.mobius.waila:Waila:1.5.10_1.7.10:dev"
+}
+
+jar {
+    def serviceEntries = [:].withDefault { [] }
+    def tmpDir = file("$buildDir/mergedServices")
+
+    configurations.shade.each { dep ->
+        from(project.zipTree(dep)) {
+            exclude 'META-INF/*.SF'
+            exclude 'META-INF/*.DSA'
+            exclude 'META-INF/*.RSA'
+            exclude 'META-INF/MANIFEST.MF'
+            exclude 'META-INF/services/**'
+        }
+
+        def zip = new java.util.zip.ZipFile(dep)
+        zip.entries().each { entry ->
+            if (entry.name.startsWith('META-INF/services/') && !entry.isDirectory()) {
+                def lines = zip.getInputStream(entry).text.trim()
+                serviceEntries[entry.name].addAll(lines.split('\r?\n').findAll { !it.trim().isEmpty() })
+            }
+        }
+        zip.close()
+    }
+
+    doFirst {
+        if (tmpDir.exists()) tmpDir.deleteDir()
+
+        serviceEntries.each { path, lines ->
+            def f = file("$tmpDir/$path")
+            f.parentFile.mkdirs()
+            f.text = lines.unique().join('\n') + '\n'
+        }
+    }
+
+    from(tmpDir)
 }
 
 processResources

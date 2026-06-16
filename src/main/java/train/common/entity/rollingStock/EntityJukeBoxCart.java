@@ -4,6 +4,7 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.audio.SoundCategory;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -13,7 +14,7 @@ import net.minecraft.world.World;
 import train.common.Traincraft;
 import train.common.adminbook.ServerLogger;
 import train.common.api.EntityRollingStock;
-import train.common.core.util.MP3Player;
+import train.common.core.util.ReplacementStreamPlayer;
 import train.common.enums.LockoutGroup;
 import train.common.library.GuiIDs;
 
@@ -24,7 +25,7 @@ public class EntityJukeBoxCart extends EntityRollingStock {
 	public String streamURL = "";
 	private Side side;
 	public float volume = 1.0f;
-	public MP3Player player;
+	public ReplacementStreamPlayer player;
 
 	public EntityJukeBoxCart(World world)
 	{
@@ -90,12 +91,12 @@ public class EntityJukeBoxCart extends EntityRollingStock {
 				float vol = (float) getDistanceSq(Minecraft.getMinecraft().thePlayer.posX,
 						Minecraft.getMinecraft().thePlayer.posY, Minecraft.getMinecraft().thePlayer.posZ);
 				if (vol >= (volume * 1000.0F)) {
-					this.player.setVolume(0.0F);
+					this.player.setGain(0);
 				} else {
 					float v2 = 10000.0F / vol / 100.0F;
 //					System.out.println(vol);
 					if (v2 > 1.0F) {
-						this.player.setVolume(volume);
+						this.player.setGain(volume * Traincraft.proxy.getJukeboxVolume());
 					} else {
 						float v1 = 1.0f - volume;
 						if (v2 - v1 > 0) {
@@ -103,11 +104,21 @@ public class EntityJukeBoxCart extends EntityRollingStock {
 						} else {
 							v2 = 0.0f;
 						}
-						this.player.setVolume(v2);
+						this.player.setGain(v2 * Traincraft.proxy.getJukeboxVolume());
 					}
 				}
 				if (vol == 0) {
 					this.invalidate();
+				}
+				if (this.isPlaying && this.player.getGainValue() != 0) {
+					if (!Minecraft.getMinecraft().thePlayer.getEntityData().hasKey("MusicVolume")) {
+						Minecraft.getMinecraft().thePlayer.getEntityData().setFloat("MusicVolume", Minecraft.getMinecraft().gameSettings.getSoundLevel(SoundCategory.MUSIC));
+						Minecraft.getMinecraft().gameSettings.setSoundLevel(SoundCategory.MUSIC, 0);
+					}
+				}
+				else if (Minecraft.getMinecraft().thePlayer.getEntityData().hasKey("MusicVolume")) {
+					Minecraft.getMinecraft().gameSettings.setSoundLevel(SoundCategory.MUSIC, Minecraft.getMinecraft().thePlayer.getEntityData().getFloat("MusicVolume"));
+					Minecraft.getMinecraft().thePlayer.getEntityData().removeTag("MusicVolume");
 				}
 				if (this.isPlaying && rand.nextInt(5) == 0 && (this.player != null && this.player.isPlaying())) {
 					int random2 = rand.nextInt(24) + 1;
@@ -141,8 +152,8 @@ public class EntityJukeBoxCart extends EntityRollingStock {
 		if (!this.isPlaying) {
 			this.isPlaying = true;
 			if (side == Side.CLIENT) {
-				this.player = new MP3Player(this.streamURL, this.worldObj, this.getEntityId());
-				player.setVolume(0);
+				this.player = new ReplacementStreamPlayer(this.streamURL, this, true);
+				player.setGain(0);
 				Traincraft.proxy.playerList.add(this.player);
 			}
 		}
@@ -155,7 +166,7 @@ public class EntityJukeBoxCart extends EntityRollingStock {
 		if (this.isPlaying) {
 			this.isPlaying = false;
 			if (side == Side.CLIENT && this.player != null) {
-				this.player.stop();
+				this.player.stopPlayer();
 				Traincraft.proxy.playerList.remove(this.player);
 			}
 		}
