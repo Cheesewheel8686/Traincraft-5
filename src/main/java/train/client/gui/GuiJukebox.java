@@ -198,7 +198,7 @@ public class GuiJukebox extends GuiScreen {
 	protected void actionPerformed(GuiButton button) {
 		if (button.id == 0) {
 			if (streamTextBox.getText() != null && streamTextBox.getText().length() > 0) {
-				if ((!jukebox.isPlaying())) {
+				if (!jukebox.isPlaying() && (jukebox.player == null || !jukebox.player.isPlaying())) {
 					if (this.streamTextBox.getText().toLowerCase().contains(".m3u")) {
 						this.jukebox.streamURL = takeFirstEntryFromM3U(this.streamTextBox.getText());
 					}
@@ -342,7 +342,7 @@ public class GuiJukebox extends GuiScreen {
 			BufferedReader i = new BufferedReader(new InputStreamReader(con.getInputStream()));
 			String mp3;
 			while ((mp3 = i.readLine()) != null) {
-				if (!mp3.startsWith("#")) {
+				if (!mp3.startsWith("#") && !mp3.replaceAll(" ", "").isEmpty()) {
 					break;
 				}
 			}

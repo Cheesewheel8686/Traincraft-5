@@ -1,5 +1,6 @@
 package fexcraft.fvtm;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
@@ -54,19 +55,20 @@ public class BOBRollingStockModel extends FVTMFormatBase {
     public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {
         model.render(entity, f, f1, f2, f3, f4, f5);
         AbstractTrains train = (AbstractTrains) entity;
+        if (((AbstractTrains) entity).getCargoManager() != null) {
+            ((AbstractTrains) entity).getCargoManager().renderCargo((AbstractTrains) entity, f, f1, f2, f3, f4, f5);
+        }
         ModelDetailInformation info = details.get(train.getColor());
         if (info == null) {
             info = details.get(0);
         }
-        if (((AbstractTrains) entity).getCargoManager() != null)
-        {
-            ((AbstractTrains) entity).getCargoManager().renderCargo((AbstractTrains) entity, f, f1, f2, f3, f4, f5);
-        }
-        if (info == null)
-        {
+        if (info == null) {
             return;
         }
         for (int i = 0; i < info.models.size(); i++) {
+            if (shouldSkipRender(entity, info, i)) {
+                continue;
+            }
             GL11.glPushMatrix();
             if (info.textures.size() > i && info.textures.get(i) != null) {
                 Tessellator.bindTexture(info.textures.get(i));
@@ -88,5 +90,35 @@ public class BOBRollingStockModel extends FVTMFormatBase {
             info.models.get(i).render(entity, f, f1, f2, f3, f4, f5);
             GL11.glPopMatrix();
         }
+    }
+
+    public static boolean shouldSkipRender(Entity entity, ModelDetailInformation info, int index) {
+        switch (info.modelRenderMethod.get(info.models.get(index))) {
+            case 1: {
+                //if not the riding entity, or not in first person skip the model.
+                return Minecraft.getMinecraft().thePlayer != entity.riddenByEntity || Minecraft.getMinecraft().gameSettings.thirdPersonView != 0;
+            }
+            case 2: {
+                //if not in first person skip the model.
+                return Minecraft.getMinecraft().gameSettings.thirdPersonView != 0;
+            }
+            case 3: {
+                //if not the riding entity, or not in third person skip the model.
+                return Minecraft.getMinecraft().thePlayer != entity.riddenByEntity || Minecraft.getMinecraft().gameSettings.thirdPersonView == 0;
+            }
+            case 4: {
+                //if not in third person skip the model.
+                return Minecraft.getMinecraft().gameSettings.thirdPersonView == 0;
+            }
+            case 5: {
+                //if not in the car
+                return Minecraft.getMinecraft().thePlayer == entity.riddenByEntity;
+            }
+            case 6: {
+                //in the car
+                return Minecraft.getMinecraft().thePlayer != entity.riddenByEntity;
+            }
+        }
+        return false;
     }
 }
