@@ -1843,7 +1843,7 @@ public class ModelU30C_new extends ModelConverter //Same as Filename
 
 		ModelRenderHelper.renderModelWithRollingStockLightControls(bodyModel, entity, f5);
 
-		if (GetColor(entity) == 6||GetColor(entity) == 1544) {
+		if (GetColor(entity) == 6||GetColor(entity) == 16) {
 			Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/newBogies/fb3_new_earliie_silvers.png"));
 			GL11.glPushMatrix();
 			GL11.glTranslated(-1.775, 0.0, 0);

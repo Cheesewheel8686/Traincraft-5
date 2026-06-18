@@ -292,6 +292,7 @@ public class Thrall63centerbeam extends AbstractStandardFreightCar
         InsertTexture(5, "FNCC");
         InsertTexture(6, "DN");
         InsertTexture(7, "GLNT");
+        InsertTexture(8, "AGW");
     }
 
     @Override

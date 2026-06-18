@@ -4,7 +4,9 @@ import net.minecraft.entity.item.EntityMinecart;
 import net.minecraft.world.World;
 import train.common.api.DieselTrain;
 import train.common.api.LiquidManager;
+import train.common.api.Locomotive;
 import train.common.core.util.TraincraftUtil;
+import train.common.enums.LockoutGroup;
 import train.common.library.EnumSounds;
 import train.common.library.sounds.SoundRecord;
 
@@ -21,7 +23,7 @@ public class DieselSD70Mac extends DieselTrain {
         InsertTexture(1, "CSXT (Yn2)");
         InsertTexture(2, "CSXT (Yn3)");
         InsertTexture(3, "Blandsville & Blankerston");
-        InsertTexture(4, "");
+        InsertTexture(4, "FNCC (Kit80)", LockoutGroup.FNCC);
         InsertTexture(5, "");
         InsertTexture(6, "");
     }

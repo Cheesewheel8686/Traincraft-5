@@ -202,6 +202,7 @@ public class GSC53Foot66Bulkhead extends AbstractStandardFreightCar
         InsertTexture(2, "NP");
         InsertTexture(3, "Blandsville & Blankerston");
         InsertTexture(4, "Minneapolis and St. Louis");
+        InsertTexture(5, "AGW");
     }
 
     @Override
