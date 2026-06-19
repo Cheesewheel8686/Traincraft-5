@@ -32,6 +32,8 @@ public class Tessellator{
 	private static IntBuffer ibuf = bbuf.asIntBuffer();
 	private float u, v, w, x, y, z;
 	private int[] rb;
+	private static ResourceLocation lastTextureUri;
+	private static int lastTextureId = -1;
 	
 	public static Tessellator getInstance(){
 		return INSTANCE;
@@ -145,16 +147,22 @@ public class Tessellator{
 	 * @param textureURI
 	 */
 	public static void bindTexture(ResourceLocation textureURI) {
+		ModelRendererTurboBatch.flushActive();
 		if (ConfigHandler.FORCE_TEXTURE_BINDING) {
 			Minecraft.getMinecraft().renderEngine.bindTexture(textureURI);
+			lastTextureUri = textureURI;
+			lastTextureId = -1;
 		} else {
 			ITextureObject object = Minecraft.getMinecraft().getTextureManager().getTexture(textureURI);
 			if (object == null) {
 				object = new SimpleTexture(textureURI);
 				Minecraft.getMinecraft().getTextureManager().loadTexture(textureURI, object);
 			}
-			if(GL11.glGetInteger(GL11.GL_TEXTURE_2D) != object.getGlTextureId()) {
-				GL11.glBindTexture(GL_TEXTURE_2D, object.getGlTextureId());
+			int textureId = object.getGlTextureId();
+			if(lastTextureId != textureId || !textureURI.equals(lastTextureUri)) {
+				GL11.glBindTexture(GL_TEXTURE_2D, textureId);
+				lastTextureUri = textureURI;
+				lastTextureId = textureId;
 			}
 		}
 	}

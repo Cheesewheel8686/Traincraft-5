@@ -26,6 +26,18 @@ public class TexturedPolygon {
 		iNormals = iNormal;
 	}
 
+	Vec3f getLegacyFaceNormal(){
+		if(normals.length == 3){
+			return new Vec3f(normals[0], normals[1], normals[2]);
+		}
+		if(vertices.length >= 3){
+			return vertices[1].vector3F.subtract(vertices[2].vector3F)
+					.crossProduct(vertices[1].vector3F.subtract(vertices[0].vector3F))
+					.normalize();
+		}
+		return null;
+	}
+
 	public void draw(Tessellator tessellator, float f){
         if(vertices.length == 3){
         	tessellator.startDrawing(GL11.GL_TRIANGLES);

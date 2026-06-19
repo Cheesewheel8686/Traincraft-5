@@ -27,6 +27,9 @@ import java.util.*;
  */
 public class ModelRendererTurbo {
 
+    private static final boolean SPLIT_NON_PLANAR_SHAPEBOX_QUADS = false;
+    private static final float NON_PLANAR_QUAD_EPSILON = 0.001F;
+
     public List<TexturedPolygon> faces = new ArrayList<>();
     public float rotationPointX, rotationPointY, rotationPointZ;
     public float rotateAngleX, rotateAngleY, rotateAngleZ;
@@ -47,6 +50,10 @@ public class ModelRendererTurbo {
     public List<?> childModels;
     public String boxName;
     public boolean isShape = false;
+    public boolean isBatchUnsafeShape = false;
+    private static final float BATCH_DEGENERATE_FACE_AREA_EPSILON = 1.0E-5F;
+    private List<BatchFace> batchFaces = new ArrayList<BatchFace>();
+    private boolean batchFacesDirty = true;
     
     private String defaultTexture;
     
@@ -290,6 +297,9 @@ public class ModelRendererTurbo {
             if(sides.length > 4 && !sides[4]) poly[4] = addPolygonReturn(new TexturedVertex[] { tv1, tv0, tv3, tv2 }, textureOffsetX + x0, textureOffsetY + yp, textureOffsetX + x0 + w, textureOffsetY + yp + h);
             if(sides.length > 5 && !sides[5]) poly[5] = addPolygonReturn(new TexturedVertex[] { tv4, tv5, tv6, tv7 }, textureOffsetX + x0 + x2 + x3, textureOffsetY + yp, textureOffsetX + x0 + x2 + x3 + w, textureOffsetY + yp + h);
         }
+        if(SPLIT_NON_PLANAR_SHAPEBOX_QUADS){
+            poly = splitNonPlanarQuads(poly);
+        }
         if(mirror ^ flip){
             for(int l = 0; l < poly.length; l++){
                 poly[l].flipFace();
@@ -308,6 +318,81 @@ public class ModelRendererTurbo {
             poly = polygons;
         }
         return copyTo(poly);
+    }
+
+    private TexturedPolygon[] splitNonPlanarQuads(TexturedPolygon[] source){
+        ArrayList<TexturedPolygon> result = new ArrayList<TexturedPolygon>();
+        for(TexturedPolygon polygon : source){
+            if(polygon == null){
+                result.add(null);
+            }
+            else if(isNonPlanarQuad(polygon)){
+                TexturedPolygon[] split = splitQuad(polygon);
+                result.add(split[0]);
+                result.add(split[1]);
+            }
+            else{
+                result.add(polygon);
+            }
+        }
+        return result.toArray(new TexturedPolygon[result.size()]);
+    }
+
+    private boolean isNonPlanarQuad(TexturedPolygon polygon){
+        if(polygon.vertices.length != 4){
+            return false;
+        }
+        Vec3f normal = faceNormal(polygon.vertices[0], polygon.vertices[1], polygon.vertices[2]);
+        if(isZero(normal)){
+            return false;
+        }
+        Vec3f edge = polygon.vertices[3].vector3F.subtract(polygon.vertices[0].vector3F);
+        float distance = MathHelper.abs(dot(normal, edge));
+        return distance > NON_PLANAR_QUAD_EPSILON;
+    }
+
+    private TexturedPolygon[] splitQuad(TexturedPolygon polygon){
+        TexturedVertex[] vertices = polygon.vertices;
+        Vec3f normalA = faceNormal(vertices[0], vertices[1], vertices[2]);
+        Vec3f normalB = faceNormal(vertices[0], vertices[2], vertices[3]);
+        Vec3f normalC = faceNormal(vertices[0], vertices[1], vertices[3]);
+        Vec3f normalD = faceNormal(vertices[1], vertices[2], vertices[3]);
+        float split02 = dot(normalA, normalB);
+        float split13 = dot(normalC, normalD);
+        TexturedPolygon first;
+        TexturedPolygon second;
+        Vec3f sharedNormal;
+        if(split13 > split02){
+            first = new TexturedPolygon(new TexturedVertex[] {vertices[0], vertices[1], vertices[3]});
+            second = new TexturedPolygon(new TexturedVertex[] {vertices[1], vertices[2], vertices[3]});
+            sharedNormal = averageNormal(normalC, normalD);
+        }
+        else{
+            first = new TexturedPolygon(new TexturedVertex[] {vertices[0], vertices[1], vertices[2]});
+            second = new TexturedPolygon(new TexturedVertex[] {vertices[0], vertices[2], vertices[3]});
+            sharedNormal = averageNormal(normalA, normalB);
+        }
+        if(!isZero(sharedNormal)){
+            first.setNormals(sharedNormal.xCoord, sharedNormal.yCoord, sharedNormal.zCoord);
+            second.setNormals(sharedNormal.xCoord, sharedNormal.yCoord, sharedNormal.zCoord);
+        }
+        return new TexturedPolygon[] {first, second};
+    }
+
+    private Vec3f faceNormal(TexturedVertex a, TexturedVertex b, TexturedVertex c){
+        return b.vector3F.subtract(c.vector3F).crossProduct(b.vector3F.subtract(a.vector3F)).normalize();
+    }
+
+    private Vec3f averageNormal(Vec3f first, Vec3f second){
+        return new Vec3f(first.xCoord + second.xCoord, first.yCoord + second.yCoord, first.zCoord + second.zCoord).normalize();
+    }
+
+    private boolean isZero(Vec3f normal){
+        return normal.xCoord == 0.0F && normal.yCoord == 0.0F && normal.zCoord == 0.0F;
+    }
+
+    private float dot(Vec3f first, Vec3f second){
+        return first.xCoord * second.xCoord + first.yCoord * second.yCoord + first.zCoord * second.zCoord;
     }
 
     /**
@@ -417,6 +502,8 @@ public class ModelRendererTurbo {
      * @param dir the side the scaling is applied to
      */
     public void addTrapezoid(float x, float y, float z, int w, int h, int d, float scale, float bottomScale, int dir){
+        isShape = true;
+        isBatchUnsafeShape = true;
         float f4 = x + w;
         float f5 = y + h;
         float f6 = z + d;
@@ -819,6 +906,7 @@ public class ModelRendererTurbo {
             shape3D.faces[idx].flipFace();
         }
         isShape = true;
+        isBatchUnsafeShape = true;
     	return copyTo(shape3D.vertices, shape3D.faces);
     }
     
@@ -1569,6 +1657,7 @@ public class ModelRendererTurbo {
      */
     public void clear(){
     	faces = new ArrayList<>();
+        invalidateBatchFaces();
     }
     
     /**
@@ -1586,17 +1675,20 @@ public class ModelRendererTurbo {
     public ModelRendererTurbo copyTo(TexturedVertex[] verts, TexturedPolygon[] poly, boolean copyGroup){
         faces = new ArrayList<>();
         faces.addAll(Arrays.asList(poly));
+        invalidateBatchFaces();
         return this;
     }
 
 
     public ModelRendererTurbo copyTo(TexturedPolygon... poly){
         faces.addAll(Arrays.asList(poly));
+        invalidateBatchFaces();
         return this;
     }
 
     public ModelRendererTurbo copyTo(ArrayList<tmt.TexturedPolygon> poly) {
         faces.addAll(poly);
+        invalidateBatchFaces();
         return this;
     }
 
@@ -1689,6 +1781,9 @@ public class ModelRendererTurbo {
             return;
         }
         if(!showModel){
+            return;
+        }
+        if(ModelRendererTurboBatch.capture(this, scale, bool)){
             return;
         }
         if(!compiled || forcedRecompile){
@@ -1833,25 +1928,396 @@ public class ModelRendererTurbo {
     	}
         compiled = true;
     }
-    
-    private void compileLegacyDisplayList(float scale){
-        displayList = GLAllocation.generateDisplayLists(1);
-        GL11.glNewList(displayList, GL11.GL_COMPILE);
+
+    void renderBatchGeometry(float scale, boolean bool){
+        if(field_1402_i || !showModel){
+            return;
+        }
+        if(rotateAngleX != 0.0F || rotateAngleY != 0.0F || rotateAngleZ != 0.0F){
+            GL11.glPushMatrix();
+            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
+            if(bool){
+                if(rotateAngleZ != 0.0F){
+                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
+                }
+                if(rotateAngleY != 0.0F){
+                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
+                }
+            }
+            else{
+                if(rotateAngleY != 0.0F){
+                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
+                }
+                if(rotateAngleZ != 0.0F){
+                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
+                }
+            }
+            if(rotateAngleX != 0.0F){
+                GL11.glRotatef(rotateAngleX * 57.29578F, 1.0F, 0.0F, 0.0F);
+            }
+            drawFaces(scale);
+            GL11.glPopMatrix();
+        }
+        else if(rotationPointX != 0.0F || rotationPointY != 0.0F || rotationPointZ != 0.0F){
+            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
+            drawFaces(scale);
+            GL11.glTranslatef(-rotationPointX * scale, -rotationPointY * scale, -rotationPointZ * scale);
+        }
+        else{
+            drawFaces(scale);
+        }
+    }
+
+    void renderBatchGeometryRemainder(float scale, boolean bool){
+        if(field_1402_i || !showModel){
+            return;
+        }
+        renderBatchGeometryFiltered(scale, bool, false);
+    }
+
+    void ensureBatchDisplayList(float scale){
+        if(!compiled || forcedRecompile){
+            compileDisplayList(scale);
+        }
+    }
+
+    void renderBatchDisplayList(float scale, boolean bool){
+        if(field_1402_i || !showModel){
+            return;
+        }
+        if(rotateAngleX != 0.0F || rotateAngleY != 0.0F || rotateAngleZ != 0.0F){
+            GL11.glPushMatrix();
+            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
+            if(bool){
+                if(rotateAngleZ != 0.0F){
+                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
+                }
+                if(rotateAngleY != 0.0F){
+                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
+                }
+            }
+            else{
+                if(rotateAngleY != 0.0F){
+                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
+                }
+                if(rotateAngleZ != 0.0F){
+                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
+                }
+            }
+            if(rotateAngleX != 0.0F){
+                GL11.glRotatef(rotateAngleX * 57.29578F, 1.0F, 0.0F, 0.0F);
+            }
+            callDisplayList();
+            GL11.glPopMatrix();
+        }
+        else if(rotationPointX != 0.0F || rotationPointY != 0.0F || rotationPointZ != 0.0F){
+            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
+            callDisplayList();
+            GL11.glTranslatef(-rotationPointX * scale, -rotationPointY * scale, -rotationPointZ * scale);
+        }
+        else{
+            callDisplayList();
+        }
+    }
+
+    void appendBatchGeometry(Tessellator tessellator, float scale, boolean bool, int mode){
+        if(field_1402_i || !showModel){
+            return;
+        }
+        int vertexCount = mode == GL11.GL_QUADS ? 4 : mode == GL11.GL_TRIANGLES ? 3 : -1;
+        if(vertexCount < 0){
+            return;
+        }
+        for(BatchFace face : getBatchFaces()){
+            if(face.vertices.length != vertexCount){
+                continue;
+            }
+            Vec3f[] transformed = new Vec3f[vertexCount];
+            for(int i = 0; i < vertexCount; i++){
+                transformed[i] = transformBatchVertex(face.vertices[i].vector3F, scale, bool);
+            }
+            Vec3f normal = transformBatchNormal(face.normal, bool);
+            tessellator.setNormal(normal.xCoord, normal.yCoord, normal.zCoord);
+            for(int i = 0; i < vertexCount; i++){
+                TexturedVertex vertex = face.vertices[i];
+                tessellator.addVertexWithUV(transformed[i].xCoord, transformed[i].yCoord, transformed[i].zCoord, vertex.textureX, vertex.textureY);
+            }
+        }
+    }
+
+    private Vec3f transformBatchVertex(Vec3f vertex, float scale, boolean bool){
+        float x = vertex.xCoord * scale;
+        float y = vertex.yCoord * scale;
+        float z = vertex.zCoord * scale;
+        Vec3f rotated = rotateBatchVector(x, y, z, bool);
+        return new Vec3f(rotated.xCoord + rotationPointX * scale, rotated.yCoord + rotationPointY * scale, rotated.zCoord + rotationPointZ * scale);
+    }
+
+    private Vec3f transformBatchNormal(Vec3f normal, boolean bool){
+        if(normal == null){
+            return null;
+        }
+        return rotateBatchVector(normal.xCoord, normal.yCoord, normal.zCoord, bool).normalize();
+    }
+
+    private Vec3f rotateBatchVector(float x, float y, float z, boolean bool){
+        if(bool){
+            if(rotateAngleZ != 0.0F){
+                float cos = MathHelper.cos(rotateAngleZ);
+                float sin = MathHelper.sin(rotateAngleZ);
+                float nextX = x * cos - y * sin;
+                y = x * sin + y * cos;
+                x = nextX;
+            }
+            if(rotateAngleY != 0.0F){
+                float cos = MathHelper.cos(rotateAngleY);
+                float sin = MathHelper.sin(rotateAngleY);
+                float nextX = x * cos + z * sin;
+                z = z * cos - x * sin;
+                x = nextX;
+            }
+        }
+        else{
+            if(rotateAngleY != 0.0F){
+                float cos = MathHelper.cos(rotateAngleY);
+                float sin = MathHelper.sin(rotateAngleY);
+                float nextX = x * cos + z * sin;
+                z = z * cos - x * sin;
+                x = nextX;
+            }
+            if(rotateAngleZ != 0.0F){
+                float cos = MathHelper.cos(rotateAngleZ);
+                float sin = MathHelper.sin(rotateAngleZ);
+                float nextX = x * cos - y * sin;
+                y = x * sin + y * cos;
+                x = nextX;
+            }
+        }
+        if(rotateAngleX != 0.0F){
+            float cos = MathHelper.cos(rotateAngleX);
+            float sin = MathHelper.sin(rotateAngleX);
+            float nextY = y * cos - z * sin;
+            z = y * sin + z * cos;
+            y = nextY;
+        }
+        return new Vec3f(x, y, z);
+    }
+
+    private void renderBatchGeometryFiltered(float scale, boolean bool, boolean renderQuadsAndTriangles){
+        if(rotateAngleX != 0.0F || rotateAngleY != 0.0F || rotateAngleZ != 0.0F){
+            GL11.glPushMatrix();
+            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
+            if(bool){
+                if(rotateAngleZ != 0.0F){
+                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
+                }
+                if(rotateAngleY != 0.0F){
+                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
+                }
+            }
+            else{
+                if(rotateAngleY != 0.0F){
+                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
+                }
+                if(rotateAngleZ != 0.0F){
+                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
+                }
+            }
+            if(rotateAngleX != 0.0F){
+                GL11.glRotatef(rotateAngleX * 57.29578F, 1.0F, 0.0F, 0.0F);
+            }
+            drawFacesFiltered(scale, renderQuadsAndTriangles);
+            GL11.glPopMatrix();
+        }
+        else if(rotationPointX != 0.0F || rotationPointY != 0.0F || rotationPointZ != 0.0F){
+            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
+            drawFacesFiltered(scale, renderQuadsAndTriangles);
+            GL11.glTranslatef(-rotationPointX * scale, -rotationPointY * scale, -rotationPointZ * scale);
+        }
+        else{
+            drawFacesFiltered(scale, renderQuadsAndTriangles);
+        }
+    }
+
+    long batchTransformHash(){
+        long result = 1469598103934665603L;
+        result = 31L * result + Float.floatToIntBits(rotationPointX);
+        result = 31L * result + Float.floatToIntBits(rotationPointY);
+        result = 31L * result + Float.floatToIntBits(rotationPointZ);
+        result = 31L * result + Float.floatToIntBits(rotateAngleX);
+        result = 31L * result + Float.floatToIntBits(rotateAngleY);
+        result = 31L * result + Float.floatToIntBits(rotateAngleZ);
+        result = 31L * result + (showModel ? 1 : 0);
+        result = 31L * result + (field_1402_i ? 1 : 0);
+        result = 31L * result + faces.size();
+        result = 31L * result + getBatchFaceSignature();
+        return result;
+    }
+
+    private void invalidateBatchFaces(){
+        batchFacesDirty = true;
+    }
+
+    private List<BatchFace> getBatchFaces(){
+        if(batchFacesDirty){
+            rebuildBatchFaces();
+        }
+        return batchFaces;
+    }
+
+    private void rebuildBatchFaces(){
+        List<BatchFace> rebuilt = new ArrayList<BatchFace>(faces.size());
+        for(TexturedPolygon polygon : faces){
+            if(polygon == null || polygon.vertices == null){
+                continue;
+            }
+            int vertexCount = polygon.vertices.length;
+            if(vertexCount != 3 && vertexCount != 4){
+                continue;
+            }
+            if(faceArea(polygon.vertices) <= BATCH_DEGENERATE_FACE_AREA_EPSILON){
+                continue;
+            }
+            Vec3f normal = polygon.getLegacyFaceNormal();
+            if(normal == null || isZeroVector(normal)){
+                normal = robustFaceNormal(polygon.vertices);
+            }
+            if(normal == null || isZeroVector(normal)){
+                continue;
+            }
+            rebuilt.add(new BatchFace(copyVertices(polygon.vertices), normal));
+        }
+        batchFaces = rebuilt;
+        batchFacesDirty = false;
+    }
+
+    private long getBatchFaceSignature(){
+        List<BatchFace> batchFaces = getBatchFaces();
+        long result = 1469598103934665603L;
+        result = 31L * result + batchFaces.size();
+        for(BatchFace face : batchFaces){
+            result = 31L * result + face.vertices.length;
+            result = 31L * result + Float.floatToIntBits(face.normal.xCoord);
+            result = 31L * result + Float.floatToIntBits(face.normal.yCoord);
+            result = 31L * result + Float.floatToIntBits(face.normal.zCoord);
+        }
+        return result;
+    }
+
+    private static TexturedVertex[] copyVertices(TexturedVertex[] vertices){
+        TexturedVertex[] copy = new TexturedVertex[vertices.length];
+        for(int i = 0; i < vertices.length; i++){
+            copy[i] = new TexturedVertex(vertices[i]);
+        }
+        return copy;
+    }
+
+    private static float faceArea(TexturedVertex[] vertices){
+        if(vertices.length == 3){
+            return triangleArea(vertices[0].vector3F, vertices[1].vector3F, vertices[2].vector3F);
+        }
+        if(vertices.length == 4){
+            return triangleArea(vertices[0].vector3F, vertices[1].vector3F, vertices[2].vector3F)
+                    + triangleArea(vertices[0].vector3F, vertices[2].vector3F, vertices[3].vector3F);
+        }
+        return 0.0F;
+    }
+
+    private static Vec3f robustFaceNormal(TexturedVertex[] vertices){
+        if(vertices.length == 3){
+            return triangleNormal(vertices[0].vector3F, vertices[1].vector3F, vertices[2].vector3F);
+        }
+        if(vertices.length == 4){
+            Vec3f normalA = triangleNormal(vertices[0].vector3F, vertices[1].vector3F, vertices[2].vector3F);
+            Vec3f normalB = triangleNormal(vertices[0].vector3F, vertices[2].vector3F, vertices[3].vector3F);
+            float areaA = triangleArea(vertices[0].vector3F, vertices[1].vector3F, vertices[2].vector3F);
+            float areaB = triangleArea(vertices[0].vector3F, vertices[2].vector3F, vertices[3].vector3F);
+            if(areaA >= areaB && normalA != null && !isZeroVector(normalA)){
+                return normalA;
+            }
+            if(normalB != null && !isZeroVector(normalB)){
+                return normalB;
+            }
+            if(normalA != null && !isZeroVector(normalA)){
+                return normalA;
+            }
+        }
+        return null;
+    }
+
+    private static Vec3f triangleNormal(Vec3f a, Vec3f b, Vec3f c){
+        Vec3f normal = b.subtract(c).crossProduct(b.subtract(a));
+        if(vectorLength(normal) <= 1.0E-4F){
+            return null;
+        }
+        return normal.normalize();
+    }
+
+    private static float triangleArea(Vec3f a, Vec3f b, Vec3f c){
+        return vectorLength(b.subtract(a).crossProduct(c.subtract(a))) * 0.5F;
+    }
+
+    private static boolean isZeroVector(Vec3f vector){
+        return vectorLength(vector) <= 1.0E-4F;
+    }
+
+    private static float vectorLength(Vec3f vector){
+        return MathHelper.sqrt_double(vector.xCoord * vector.xCoord + vector.yCoord * vector.yCoord + vector.zCoord * vector.zCoord);
+    }
+
+    private static final class BatchFace {
+        private final TexturedVertex[] vertices;
+        private final Vec3f normal;
+
+        private BatchFace(TexturedVertex[] vertices, Vec3f normal){
+            this.vertices = vertices;
+            this.normal = normal;
+        }
+    }
+
+    private void drawFaces(float scale){
         Tessellator tessellator = Tessellator.getInstance();
         for(TexturedPolygon poly : faces){
             poly.draw(tessellator, scale);
         }
+    }
+
+    private void drawFacesFiltered(float scale, boolean renderQuadsAndTriangles){
+        Tessellator tessellator = Tessellator.getInstance();
+        for(TexturedPolygon poly : faces){
+            boolean quadOrTriangle = poly.vertices.length == 3 || poly.vertices.length == 4;
+            if(quadOrTriangle == renderQuadsAndTriangles){
+                poly.draw(tessellator, scale);
+            }
+        }
+    }
+    
+    private void compileLegacyDisplayList(float scale){
+        displayList = GLAllocation.generateDisplayLists(1);
+        GL11.glNewList(displayList, GL11.GL_COMPILE);
+        drawFaces(scale);
         GL11.glEndList();
     }
 
     //ETERNAL: changed w/h/d to floats for better support of the custom render on the rails.
 	public ModelRendererTurbo addShapeBox(float x, float y, float z, float w, float h, float d, float scale, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, float x5, float y5, float z5, float x6, float y6, float z6, float x7, float y7, float z7){
-        w+=w<1?0.0015f:0.001F;
-        h+=h<1?0.0015f:0.001F;
-        d+=d<1?0.0015f:0.001F;
-        x-=w<1?0.001f:0.0005F;
-        y-=h<1?0.001f:0.0005F;
-        z-=d<1?0.001f:0.0005F;
+        isShape = true;
+        isBatchUnsafeShape = hasShapeOffsets(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, x5, y5, z5, x6, y6, z6, x7, y7, z7);
+        float textureW = w;
+        float textureH = h;
+        float textureD = d;
+        if(w == 0.0F){
+            x -= 0.005F;
+            w = 0.005F;
+        }
+        if(h == 0.0F){
+            y -= 0.005F;
+            h = 0.005F;
+        }
+        if(d == 0.0F){
+            z -= 0.005F;
+            d = 0.005F;
+        }
 		float f4 = x + w, f5 = y + h, f6 = z + d;
 		x -= scale; y -= scale; z -= scale;
 		f4 += scale; f5 += scale; f6 += scale;
@@ -1860,10 +2326,12 @@ public class ModelRendererTurbo {
 		}
 
 		float[][] v  = {{x  - x0, y  - y0, z  - z0}, {f4 + x1, y  - y1, z  - z1},{f4 + x5, f5 + y5, z  - z5}, {x  - x4, f5 + y4, z  - z4}, {x  - x3, y  - y3, f6 + z3}, {f4 + x2, y  - y2, f6 + z2},{f4 + x6, f5 + y6, f6 + z6}, {x  - x7, f5 + y7, f6 + z7}};
-		return addRectShape(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], w, h, d);
+		return addRectShape(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], textureW, textureH, textureD);
 	}
 
     public ModelRendererTurbo addShapeBox(float x, float y, float z, float w, float h, float d, float scale, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, float x5, float y5, float z5, float x6, float y6, float z6, float x7, float y7, float z7, boolean[] sides){
+        isShape = true;
+        isBatchUnsafeShape = hasShapeOffsets(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, x5, y5, z5, x6, y6, z6, x7, y7, z7);
         float xw = x + w, yh = y + h, zd = z + d; x -= scale; y -= scale; z -= scale; xw += scale; yh += scale; zd += scale;
         if(mirror){ float fl = xw; xw = x; x = fl; }
         float[] v0 = {x  - x0, y  - y0, z  - z0}, v1 = {xw + x1, y  - y1, z  - z1}, v2 = {xw + x5, yh + y5, z  - z5};
@@ -1871,7 +2339,16 @@ public class ModelRendererTurbo {
         float[] v6 = {xw + x6, yh + y6, zd + z6}, v7 = {x  - x7, yh + y7, zd + z7};
         return addRectShape(v0, v1, v2, v3, v4, v5, v6, v7, w, h, d, sides);
     }
-	
+
+    private boolean hasShapeOffsets(float... offsets){
+        for(float offset : offsets){
+            if(offset != 0.0F){
+                return true;
+            }
+        }
+        return false;
+    }
+
 	public final ModelRendererTurbo setOldRotationOrder(boolean bool){
 		this.rotorder = bool;
 		return this;

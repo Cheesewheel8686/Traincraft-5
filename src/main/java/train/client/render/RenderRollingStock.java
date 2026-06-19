@@ -18,6 +18,7 @@ import org.lwjgl.opengl.GL11;
 import tmt.ModelBase;
 import tmt.ModelConverter;
 import tmt.ModelRendererTurbo;
+import tmt.ModelRendererTurboBatch;
 import tmt.Tessellator;
 import train.client.render.register.SubTrainRenderRecord;
 import train.client.renderhelper.ModelRenderHelper;
@@ -310,7 +311,18 @@ public class RenderRollingStock extends Render {
 		switch (cart.specialRenderMode)
 		{
 			case 0:
-				cart.modelInstance.render(cart, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
+			{
+				ModelRendererTurboBatch.begin(cart.modelInstance, cart);
+				try {
+					if (cart.modelInstance instanceof ModelConverter) {
+						ModelRendererTurboBatch.renderArray(cart.modelInstance, ((ModelConverter)cart.modelInstance).bodyModel, 0.0625F, false);
+					}
+					cart.modelInstance.render(cart, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
+				}
+				finally {
+					ModelRendererTurboBatch.end();
+				}
+			}
 			break;
 			case 100: // Only used for AbstractRotarySnowPlow
 				AbstractRotarySnowPlow plow = (AbstractRotarySnowPlow) cart;
@@ -377,8 +389,17 @@ public class RenderRollingStock extends Render {
 				}
 
 				GL11.glPushMatrix();
-				cart.modelInstance.render(cart, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
-				GL11.glPopMatrix();
+				ModelRendererTurboBatch.begin(cart.modelInstance, cart);
+				try {
+					if (cart.modelInstance instanceof ModelConverter) {
+						ModelRendererTurboBatch.renderArray(cart.modelInstance, ((ModelConverter)cart.modelInstance).bodyModel, 0.0625F, false);
+					}
+					cart.modelInstance.render(cart, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
+				}
+				finally {
+					ModelRendererTurboBatch.end();
+					GL11.glPopMatrix();
+				}
 
 			break;
 		}
