@@ -314,9 +314,7 @@ public class RenderRollingStock extends Render {
 			{
 				ModelRendererTurboBatch.begin(cart.modelInstance, cart);
 				try {
-					if (cart.modelInstance instanceof ModelConverter) {
-						ModelRendererTurboBatch.renderArray(cart.modelInstance, ((ModelConverter)cart.modelInstance).bodyModel, 0.0625F, false);
-					}
+					ModelRendererTurboBatch.renderStaticBodySources(cart.modelInstance, cart, 0.0625F, false);
 					cart.modelInstance.render(cart, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
 				}
 				finally {
@@ -391,9 +389,7 @@ public class RenderRollingStock extends Render {
 				GL11.glPushMatrix();
 				ModelRendererTurboBatch.begin(cart.modelInstance, cart);
 				try {
-					if (cart.modelInstance instanceof ModelConverter) {
-						ModelRendererTurboBatch.renderArray(cart.modelInstance, ((ModelConverter)cart.modelInstance).bodyModel, 0.0625F, false);
-					}
+					ModelRendererTurboBatch.renderStaticBodySources(cart.modelInstance, cart, 0.0625F, false);
 					cart.modelInstance.render(cart, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
 				}
 				finally {

@@ -1,5 +1,6 @@
 package tmt;
 
+import fexcraft.fvtm.BOBRollingStockModel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.entity.Entity;
@@ -8,6 +9,7 @@ import train.common.api.EntityRollingStock;
 import train.common.api.IRollingStockLightControls;
 import train.common.core.handlers.ConfigHandler;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,9 +35,12 @@ import java.util.Set;
 public final class ModelRendererTurboBatch {
 
 	private static final int MIN_BATCH_SIZE = 64;
+	private static final int FVTM_RUNTIME_MIN_BATCH_SIZE = 8;
+	private static final int FVTM_RUNTIME_BATCH_INDEX = -1;
 	private static final ThreadLocal<Context> ACTIVE = new ThreadLocal<Context>();
 	private static final Map<BatchKey, CompiledBatch> CACHE = new HashMap<BatchKey, CompiledBatch>();
 	private static final Map<ModelRendererTurbo, RenderGroup> GROUP_CACHE = new IdentityHashMap<ModelRendererTurbo, RenderGroup>();
+	private static final Map<Class<?>, List<StaticBodyField>> STATIC_BODY_FIELDS = new HashMap<Class<?>, List<StaticBodyField>>();
 
 	private ModelRendererTurboBatch() {
 	}
@@ -75,8 +80,9 @@ public final class ModelRendererTurboBatch {
 	 *   <li>If {@code suppressOnly} is true, the body prebatch is finished. From that point on,
 	 *   we do not collect new parts, because later parts may be bogies or custom sections that
 	 *   need their exact original transform and render state.</li>
-	 *   <li>If neither of those applies, a simple compatible part may be collected and drawn
-	 *   later as part of a batch.</li>
+	 *   <li>Collection is disabled by default. It is only allowed while an explicit body-source
+	 *   helper owns the render boundary. That prevents a random truck or cargo render call from
+	 *   being delayed until after its GL matrix has changed.</li>
 	 * </ul>
 	 */
 	public static boolean capture(ModelRendererTurbo turbo, float scale, boolean rotorder) {
@@ -84,7 +90,7 @@ public final class ModelRendererTurboBatch {
 		if (context != null && context.suppressed.contains(turbo)) {
 			return true;
 		}
-		if (context == null || context.suppressOnly || context.flushing || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
+		if (context == null || context.suppressOnly || !context.captureEnabled || context.flushing || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
 			return false;
 		}
 		if (!isBatchCompatible(turbo)) {
@@ -92,6 +98,136 @@ public final class ModelRendererTurboBatch {
 		}
 		context.entries.add(new Entry(turbo, scale, rotorder, classify(turbo)));
 		return true;
+	}
+
+	/**
+	 * Finds and pre-renders the static body parts for model types that are not necessarily
+	 * {@link ModelConverter}.
+	 *
+	 * <p>This method is intentionally conservative. It only batches arrays or groups we can
+	 * identify before the generated model render method starts. That is the safety boundary
+	 * that keeps trucks and bogies from being captured inside a temporary GL transform and
+	 * replayed later after the transform has been popped.</p>
+	 */
+	public static boolean renderStaticBodySources(Object owner, Entity entity, float scale, boolean rotorder) {
+		Context context = ACTIVE.get();
+		if (context == null || context.flushing || owner == null || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
+			if (context != null) {
+				context.suppressOnly = true;
+			}
+			return false;
+		}
+		boolean rendered = false;
+		if (owner instanceof BOBRollingStockModel) {
+			rendered |= renderFVTMGroups(owner, ((BOBRollingStockModel)owner).getBaseModel(), scale, rotorder);
+		}
+		else if (owner instanceof ModelConverter) {
+			rendered |= renderArray(owner, ((ModelConverter)owner).bodyModel, scale, rotorder);
+		}
+		else if (owner instanceof FVTMFormatBase) {
+			rendered |= renderFVTMGroups(owner, (FVTMFormatBase)owner, scale, rotorder);
+		}
+		else {
+			for (StaticBodyField source : getStaticBodyFields(owner.getClass())) {
+				ModelRendererTurbo[] model = source.get(owner);
+				if (model != null && model.length >= MIN_BATCH_SIZE) {
+					rendered |= renderArray(owner, model, scale, rotorder);
+				}
+			}
+		}
+		context.suppressOnly = true;
+		return rendered;
+	}
+
+	/**
+	 * Explicit FVTM group prebatching for callers that have already decided the groups are
+	 * static body geometry. This is used for the base model inside {@link BOBRollingStockModel}
+	 * and for rolling-stock models that directly extend {@link FVTMFormatBase}.
+	 *
+	 * <p>FVTM models tend to be organized as many named {@code TurboList} groups. Batching each
+	 * group by itself is safe, but it gives away much of the FPS win because many groups are too
+	 * small to cross the batch threshold. Instead, this method flattens safe-looking static body
+	 * groups into one large explicit body source. The later generated/FVTM render call will skip
+	 * only the exact parts drawn here, so bogies and custom detail groups still render normally.</p>
+	 *
+	 * <p>This is not called from {@link FVTMFormatBase#render(Entity, float, float, float, float, float, float)}
+	 * because FVTM subclasses can animate groups during render. The safe boundary is the explicit
+	 * rolling-stock prebatch helper, before model render code starts changing matrices or textures.</p>
+	 */
+	public static boolean renderFVTMGroups(Object owner, FVTMFormatBase model, float scale, boolean rotorder) {
+		Context context = ACTIVE.get();
+		if (context == null || context.flushing || model == null || model.groups == null) {
+			return false;
+		}
+		List<Entry> entries = new ArrayList<Entry>();
+		for (FVTMFormatBase.TurboList group : model.groups) {
+			if (group == null || !isSafeFVTMGroupName(group.name)) {
+				continue;
+			}
+			for (ModelRendererTurbo turbo : group) {
+				if (isBatchCompatible(turbo) && isSafeFVTMPartName(turbo)) {
+					entries.add(new Entry(turbo, scale, rotorder, classify(turbo)));
+				}
+			}
+		}
+		if (entries.size() < MIN_BATCH_SIZE) {
+			return false;
+		}
+		for (Entry entry : entries) {
+			context.suppressed.add(entry.turbo);
+		}
+		renderEntries(context, entries);
+		return true;
+	}
+
+	/**
+	 * Batches FVTM models that are rendered from inside another model's custom render code.
+	 *
+	 * <p>This recovers the fast pre-bogie-fix behavior for BOB details and other nested FVTM
+	 * models, but without the old transform bug. The batch is emitted immediately while the
+	 * caller's current GL matrix, texture, and light state are still active. Then the normal
+	 * FVTM loop runs and skips only the parts drawn by this local batch.</p>
+	 *
+	 * <p>The suppressions returned from this method are temporary. They must be released when
+	 * that specific FVTM render call ends, otherwise the same detail model reused elsewhere in
+	 * the same rolling-stock render could disappear.</p>
+	 */
+	public static ArrayList<ModelRendererTurbo> renderFVTMRuntimeGroups(Object owner, List<FVTMFormatBase.TurboList> groups, float scale, boolean rotorder) {
+		Context context = ACTIVE.get();
+		ArrayList<ModelRendererTurbo> runtimeSuppressed = new ArrayList<ModelRendererTurbo>();
+		if (context == null || context.flushing || groups == null || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
+			return runtimeSuppressed;
+		}
+		List<Entry> entries = new ArrayList<Entry>();
+		for (FVTMFormatBase.TurboList group : groups) {
+			if (group == null) {
+				continue;
+			}
+			for (ModelRendererTurbo turbo : group) {
+				if (!context.suppressed.contains(turbo) && isBatchCompatible(turbo)) {
+					entries.add(new Entry(turbo, scale, rotorder, classify(turbo)));
+				}
+			}
+		}
+		if (entries.size() < FVTM_RUNTIME_MIN_BATCH_SIZE) {
+			return runtimeSuppressed;
+		}
+		for (Entry entry : entries) {
+			context.suppressed.add(entry.turbo);
+			runtimeSuppressed.add(entry.turbo);
+		}
+		renderEntries(context, entries, FVTM_RUNTIME_MIN_BATCH_SIZE, System.identityHashCode(owner), FVTM_RUNTIME_BATCH_INDEX);
+		return runtimeSuppressed;
+	}
+
+	public static void releaseRuntimeSuppressions(ArrayList<ModelRendererTurbo> runtimeSuppressed) {
+		Context context = ACTIVE.get();
+		if (context == null || runtimeSuppressed == null || runtimeSuppressed.isEmpty()) {
+			return;
+		}
+		for (ModelRendererTurbo turbo : runtimeSuppressed) {
+			context.suppressed.remove(turbo);
+		}
 	}
 
 	/**
@@ -107,6 +243,12 @@ public final class ModelRendererTurboBatch {
 	 * same Java object, it is skipped. Then {@code suppressOnly} is set so later parts are not
 	 * collected. That protects parts whose render position or texture depends on custom code
 	 * inside the generated model.</p>
+	 *
+	 * <p>Even in {@code bodyModel}, some generated parts are not really static body shell. The
+	 * rotary snowplow keeps its spinning blade parts in {@code bodyModel} with box name
+	 * {@code "rotary"}. Those must stay out of this prebatch so the special rotary renderer can
+	 * draw exactly one animated blade set instead of one frozen prebatched copy plus one spinning
+	 * copy.</p>
 	 */
 	public static boolean renderArray(Object owner, ModelRendererTurbo[] model, float scale, boolean rotorder) {
 		Context context = ACTIVE.get();
@@ -118,7 +260,7 @@ public final class ModelRendererTurboBatch {
 		}
 		List<Entry> entries = new ArrayList<Entry>(model.length);
 		for (ModelRendererTurbo turbo : model) {
-			if (isBatchCompatible(turbo)) {
+			if (isBatchCompatible(turbo) && isSafeStaticPartName(turbo)) {
 				entries.add(new Entry(turbo, scale, rotorder, classify(turbo)));
 			}
 		}
@@ -127,9 +269,114 @@ public final class ModelRendererTurboBatch {
 				context.suppressed.add(entry.turbo);
 			}
 			renderEntries(context, entries);
+			context.suppressOnly = true;
+			return true;
 		}
 		context.suppressOnly = true;
-		return !entries.isEmpty();
+		return false;
+	}
+
+	private static List<StaticBodyField> getStaticBodyFields(Class<?> type) {
+		List<StaticBodyField> cached = STATIC_BODY_FIELDS.get(type);
+		if (cached != null) {
+			return cached;
+		}
+		List<StaticBodyField> fields = new ArrayList<StaticBodyField>();
+		Field bodyModel = findField(type, "bodyModel");
+		if (bodyModel != null && bodyModel.getType().isArray() && bodyModel.getType().getComponentType() == ModelRendererTurbo.class) {
+			fields.add(new StaticBodyField(bodyModel));
+		}
+		else {
+			addSafeModelArrays(type, fields);
+		}
+		STATIC_BODY_FIELDS.put(type, fields);
+		return fields;
+	}
+
+	private static void addSafeModelArrays(Class<?> type, List<StaticBodyField> fields) {
+		Class<?> current = type;
+		while (current != null) {
+			Field[] declared = current.getDeclaredFields();
+			for (Field field : declared) {
+				if (!field.getType().isArray()
+						|| field.getType().getComponentType() != ModelRendererTurbo.class
+						|| !isSafeStaticBodyFieldName(field.getName())
+						|| containsField(fields, field)) {
+					continue;
+				}
+				field.setAccessible(true);
+				fields.add(new StaticBodyField(field));
+			}
+			current = current.getSuperclass();
+		}
+	}
+
+	private static boolean containsField(List<StaticBodyField> fields, Field field) {
+		for (StaticBodyField existing : fields) {
+			if (existing.field.equals(field)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean isSafeStaticBodyFieldName(String name) {
+		return !containsUnsafeStaticBodyName(name);
+	}
+
+	private static boolean isSafeFVTMGroupName(String name) {
+		return !containsUnsafeStaticBodyName(name);
+	}
+
+	private static boolean isSafeFVTMPartName(ModelRendererTurbo turbo) {
+		return isSafeStaticPartName(turbo);
+	}
+
+	private static boolean isSafeStaticPartName(ModelRendererTurbo turbo) {
+		return turbo == null || !containsUnsafeStaticBodyName(turbo.boxName);
+	}
+
+	private static boolean containsUnsafeStaticBodyName(String name) {
+		String lower = name == null ? "" : name.toLowerCase();
+		if (lower.equals("open")
+				|| lower.equals("closed")
+				|| lower.equals("rotaryblades")
+				|| lower.contains("bogie")
+				|| lower.contains("truck")
+				|| lower.contains("wheel")
+				|| lower.contains("door")
+				|| lower.contains("blade")
+				|| lower.contains("rotary")
+				|| lower.contains("arm")
+				|| lower.contains("cargo")
+				|| lower.contains("load")
+				|| lower.contains("coal")
+				|| lower.contains("detail")
+				|| lower.contains("overlay")
+				|| lower.contains("coupler")
+				|| lower.contains("turret")
+				|| lower.contains("barrel")
+				|| lower.contains("track")
+				|| lower.contains("trailer")
+				|| lower.contains("steering")) {
+			return true;
+		}
+		return false;
+	}
+
+	private static Field findField(Class<?> type, String name) {
+		Class<?> current = type;
+		while (current != null) {
+			try {
+				Field field = current.getDeclaredField(name);
+				field.setAccessible(true);
+				return field;
+			}
+			catch (NoSuchFieldException ignored) {
+				current = current.getSuperclass();
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -159,21 +406,29 @@ public final class ModelRendererTurboBatch {
 	 * each part builds clean batch faces and robust normals.</p>
 	 */
 	private static void renderEntries(Context context, List<Entry> entries) {
+		renderEntries(context, entries, MIN_BATCH_SIZE);
+	}
+
+	private static void renderEntries(Context context, List<Entry> entries, int minBatchSize) {
+		renderEntries(context, entries, minBatchSize, System.identityHashCode(context.owner), context.flushIndex);
+	}
+
+	private static void renderEntries(Context context, List<Entry> entries, int minBatchSize, int cacheOwnerId, int cacheBatchIndex) {
 		context.flushing = true;
 		try {
-			if (entries.size() < MIN_BATCH_SIZE) {
+			if (entries.size() < minBatchSize) {
 				renderImmediate(entries);
 			}
 			else {
-				renderGroup(context, entries, RenderGroup.NORMAL);
-				renderGroup(context, entries, RenderGroup.CULL);
-				renderGroup(context, entries, RenderGroup.LAMP);
-				renderGroup(context, entries, RenderGroup.DITCH);
-				renderGroup(context, entries, RenderGroup.COMMANDER);
-				renderGroup(context, entries, RenderGroup.PRIME1);
-				renderGroup(context, entries, RenderGroup.PRIME2);
-				renderGroup(context, entries, RenderGroup.PRIME3);
-				renderGroup(context, entries, RenderGroup.PRIME4);
+				renderGroup(context, entries, RenderGroup.NORMAL, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.CULL, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.LAMP, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.DITCH, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.COMMANDER, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.PRIME1, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.PRIME2, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.PRIME3, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.PRIME4, cacheOwnerId, cacheBatchIndex);
 			}
 		}
 		finally {
@@ -258,7 +513,7 @@ public final class ModelRendererTurboBatch {
 	 * the current entity says the light is on. The state is restored afterward so it cannot
 	 * leak into trucks, body parts, or the next model.</p>
 	 */
-	private static void renderGroup(Context context, List<Entry> entries, RenderGroup group) {
+	private static void renderGroup(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, int cacheBatchIndex) {
 		List<Entry> groupEntries = new ArrayList<Entry>();
 		for (Entry entry : entries) {
 			if (entry.group == group) {
@@ -275,7 +530,7 @@ public final class ModelRendererTurboBatch {
 			Minecraft.getMinecraft().entityRenderer.disableLightmap(1D);
 		}
 		try {
-			callCompiledBatch(context, groupEntries, group);
+			callCompiledBatch(context, groupEntries, group, cacheOwnerId, cacheBatchIndex);
 		}
 		finally {
 			if (group == RenderGroup.CULL) {
@@ -334,7 +589,11 @@ public final class ModelRendererTurboBatch {
 	 * too, otherwise an old display list could be reused by mistake.</p>
 	 */
 	private static void callCompiledBatch(Context context, List<Entry> entries, RenderGroup group) {
-		BatchKey key = new BatchKey(System.identityHashCode(context.owner), context.flushIndex, group);
+		callCompiledBatch(context, entries, group, System.identityHashCode(context.owner), context.flushIndex);
+	}
+
+	private static void callCompiledBatch(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, int cacheBatchIndex) {
+		BatchKey key = new BatchKey(cacheOwnerId, cacheBatchIndex, group);
 		long signature = signature(entries);
 		CompiledBatch batch = CACHE.get(key);
 		if (batch == null || batch.signature != signature) {
@@ -445,6 +704,7 @@ public final class ModelRendererTurboBatch {
 		private final Entity entity;
 		private int flushIndex;
 		private boolean suppressOnly;
+		private boolean captureEnabled;
 		private boolean flushing;
 		private List<Entry> entries = new ArrayList<Entry>();
 		private final Set<ModelRendererTurbo> suppressed = Collections.newSetFromMap(new IdentityHashMap<ModelRendererTurbo, Boolean>());
@@ -452,6 +712,23 @@ public final class ModelRendererTurboBatch {
 		private Context(Object owner, Entity entity) {
 			this.owner = owner;
 			this.entity = entity;
+		}
+	}
+
+	private static final class StaticBodyField {
+		private final Field field;
+
+		private StaticBodyField(Field field) {
+			this.field = field;
+		}
+
+		private ModelRendererTurbo[] get(Object owner) {
+			try {
+				return (ModelRendererTurbo[])field.get(owner);
+			}
+			catch (IllegalAccessException ignored) {
+				return null;
+			}
 		}
 	}
 

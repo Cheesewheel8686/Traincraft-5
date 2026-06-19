@@ -2061,46 +2061,58 @@ public class ModelRendererTurbo {
     }
 
     private Vec3f rotateBatchVector(float x, float y, float z, boolean bool){
+        /*
+         * The normal render path uses OpenGL matrix calls. Those calls are written as
+         * translate, then rotate Y/Z, then rotate X, but OpenGL applies the final matrix to
+         * vertices in the opposite effective order. The batched path bakes vertices on the
+         * CPU, so it has to apply that effective order directly. This mostly goes unnoticed
+         * for parts with only one rotation axis, but mirrored curved parts such as Amfleet
+         * roof/body pieces use a curve rotation plus a 180-degree Y rotation; using the GL
+         * call order here makes only those double-rotated pieces land incorrectly.
+         */
+        Vec3f vector = rotateBatchX(x, y, z);
         if(bool){
-            if(rotateAngleZ != 0.0F){
-                float cos = MathHelper.cos(rotateAngleZ);
-                float sin = MathHelper.sin(rotateAngleZ);
-                float nextX = x * cos - y * sin;
-                y = x * sin + y * cos;
-                x = nextX;
-            }
-            if(rotateAngleY != 0.0F){
-                float cos = MathHelper.cos(rotateAngleY);
-                float sin = MathHelper.sin(rotateAngleY);
-                float nextX = x * cos + z * sin;
-                z = z * cos - x * sin;
-                x = nextX;
-            }
+            vector = rotateBatchY(vector.xCoord, vector.yCoord, vector.zCoord);
+            vector = rotateBatchZ(vector.xCoord, vector.yCoord, vector.zCoord);
         }
         else{
-            if(rotateAngleY != 0.0F){
-                float cos = MathHelper.cos(rotateAngleY);
-                float sin = MathHelper.sin(rotateAngleY);
-                float nextX = x * cos + z * sin;
-                z = z * cos - x * sin;
-                x = nextX;
-            }
-            if(rotateAngleZ != 0.0F){
-                float cos = MathHelper.cos(rotateAngleZ);
-                float sin = MathHelper.sin(rotateAngleZ);
-                float nextX = x * cos - y * sin;
-                y = x * sin + y * cos;
-                x = nextX;
-            }
+            vector = rotateBatchZ(vector.xCoord, vector.yCoord, vector.zCoord);
+            vector = rotateBatchY(vector.xCoord, vector.yCoord, vector.zCoord);
         }
-        if(rotateAngleX != 0.0F){
-            float cos = MathHelper.cos(rotateAngleX);
-            float sin = MathHelper.sin(rotateAngleX);
-            float nextY = y * cos - z * sin;
-            z = y * sin + z * cos;
-            y = nextY;
+        return vector;
+    }
+
+    private Vec3f rotateBatchX(float x, float y, float z){
+        if(rotateAngleX == 0.0F){
+            return new Vec3f(x, y, z);
         }
-        return new Vec3f(x, y, z);
+        float cos = MathHelper.cos(rotateAngleX);
+        float sin = MathHelper.sin(rotateAngleX);
+        float nextY = y * cos - z * sin;
+        z = y * sin + z * cos;
+        return new Vec3f(x, nextY, z);
+    }
+
+    private Vec3f rotateBatchY(float x, float y, float z){
+        if(rotateAngleY == 0.0F){
+            return new Vec3f(x, y, z);
+        }
+        float cos = MathHelper.cos(rotateAngleY);
+        float sin = MathHelper.sin(rotateAngleY);
+        float nextX = x * cos + z * sin;
+        z = z * cos - x * sin;
+        return new Vec3f(nextX, y, z);
+    }
+
+    private Vec3f rotateBatchZ(float x, float y, float z){
+        if(rotateAngleZ == 0.0F){
+            return new Vec3f(x, y, z);
+        }
+        float cos = MathHelper.cos(rotateAngleZ);
+        float sin = MathHelper.sin(rotateAngleZ);
+        float nextX = x * cos - y * sin;
+        y = x * sin + y * cos;
+        return new Vec3f(nextX, y, z);
     }
 
     private void renderBatchGeometryFiltered(float scale, boolean bool, boolean renderQuadsAndTriangles){

@@ -51,6 +51,10 @@ public class BOBRollingStockModel extends FVTMFormatBase {
         }
     }
 
+    public FVTMFormatBase getBaseModel() {
+        return model;
+    }
+
     @Override
     public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {
         model.render(entity, f, f1, f2, f3, f4, f5);
