@@ -2,8 +2,6 @@ package train.client.render;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.jcirmodelsquad.tcjcir.models.trains.ModelRotaryPlow;
-import com.jcirmodelsquad.tcjcir.vehicles.locomotives.RotaryPlow1;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.BlockRailBase;
@@ -16,12 +14,9 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.GL11;
 import tmt.ModelBase;
-import tmt.ModelConverter;
-import tmt.ModelRendererTurbo;
 import tmt.ModelRendererTurboBatch;
 import tmt.Tessellator;
 import train.client.render.register.SubTrainRenderRecord;
-import train.client.renderhelper.ModelRenderHelper;
 import train.common.api.AbstractRotarySnowPlow;
 import train.common.api.EntityRollingStock;
 import train.common.api.Locomotive;
@@ -287,25 +282,6 @@ public class RenderRollingStock extends Render {
 		if (cart.modelInstance == null)
 		{
 			cart.modelInstance = cart.getRenderSpec().getModel();
-			switch (cart.specialRenderMode)
-			{
-				case 100:
-
-                    for (ModelRendererTurbo box : ((ModelConverter)cart.modelInstance).bodyModel)
-					{
-						switch (box.boxName)
-						{
-							case "rotary":
-								cart.modelInstance.rotaryBlades.add(box);
-								break;
-							default:
-								cart.modelInstance.boxList.add(box);
-								break;
-						}
-					}
-
-				break;
-			}
 		}
 
 		switch (cart.specialRenderMode)
@@ -323,78 +299,14 @@ public class RenderRollingStock extends Render {
 			}
 			break;
 			case 100: // Only used for AbstractRotarySnowPlow
-				AbstractRotarySnowPlow plow = (AbstractRotarySnowPlow) cart;
-				long now = System.nanoTime();
-
-				if (plow.bladeRenderLastTime == 0L)
-				{
-					plow.bladeRenderLastTime = now;
-				}
-
-				float elapsedMs = (now - plow.bladeRenderLastTime) / 1_000_000F;
-				plow.bladeRenderLastTime = now;
-				float idleDivisor = 500.0F; // slowest spin at idle
-				float maxDivisor  = 150.0F; // fastest spin at full speed
-
-				double trainSpeed = Math.abs(plow.getSpeed());
-
-				// map speed to divisor range
-				// at speed = 0 → divisor = idleDivisor
-				// at speed >= maxSpeed → divisor = maxDivisor
-				float maxSpeed = 1.0F; // km/h
-
-				// linear interpolation
-				double divisor = idleDivisor - (idleDivisor - maxDivisor) * Math.min(trainSpeed / maxSpeed, 1.0F);
-
-				if (plow.isRotaryOn())
-				{
-					plow.bladeRenderAngle -= elapsedMs / divisor;
-				}
-
-				// keep bounded
-				if (plow.bladeRenderAngle > Math.PI * 2F)
-				{
-					plow.bladeRenderAngle -= Math.PI * 2F;
-				}
-				if (plow.bladeRenderAngle < -Math.PI * 2F)
-				{
-					plow.bladeRenderAngle += Math.PI * 2F;
-				}
-
-				for (ModelRendererTurbo turbo : cart.modelInstance.rotaryBlades)
-				{
-					GL11.glPushMatrix();
-
-					GL11.glTranslatef(
-							turbo.rotationPointX * 0.0625F,
-							turbo.rotationPointY * 0.0625F,
-							turbo.rotationPointZ * 0.0625F
-					);
-
-					if (((AbstractRotarySnowPlow)cart).isRotaryOn())
-					{
-						GL11.glRotatef(((AbstractRotarySnowPlow)cart).bladeRenderAngle * 57.29578F, 1F, 0F, 0F);
-					}
-
-					GL11.glTranslatef(
-							-turbo.rotationPointX * 0.0625F,
-							-turbo.rotationPointY * 0.0625F,
-							-turbo.rotationPointZ * 0.0625F
-					);
-
-					turbo.render();
-					GL11.glPopMatrix();
-				}
-
-				GL11.glPushMatrix();
 				ModelRendererTurboBatch.begin(cart.modelInstance, cart);
 				try {
 					ModelRendererTurboBatch.renderStaticBodySources(cart.modelInstance, cart, 0.0625F, false);
+					ModelRendererTurboBatch.renderRotaryGroup(cart.modelInstance, (AbstractRotarySnowPlow)cart, 0.0625F, false);
 					cart.modelInstance.render(cart, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F);
 				}
 				finally {
 					ModelRendererTurboBatch.end();
-					GL11.glPopMatrix();
 				}
 
 			break;

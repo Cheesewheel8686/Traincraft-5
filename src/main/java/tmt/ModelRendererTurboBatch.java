@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.entity.Entity;
 import org.lwjgl.opengl.GL11;
+import train.common.api.AbstractRotarySnowPlow;
 import train.common.api.EntityRollingStock;
 import train.common.api.IRollingStockLightControls;
 import train.common.core.handlers.ConfigHandler;
@@ -41,6 +42,7 @@ public final class ModelRendererTurboBatch {
 	private static final Map<BatchKey, CompiledBatch> CACHE = new HashMap<BatchKey, CompiledBatch>();
 	private static final Map<ModelRendererTurbo, RenderGroup> GROUP_CACHE = new IdentityHashMap<ModelRendererTurbo, RenderGroup>();
 	private static final Map<Class<?>, List<StaticBodyField>> STATIC_BODY_FIELDS = new HashMap<Class<?>, List<StaticBodyField>>();
+	private static final Map<Object, DynamicPartGroups> DYNAMIC_GROUPS = new IdentityHashMap<Object, DynamicPartGroups>();
 
 	private ModelRendererTurboBatch() {
 	}
@@ -231,6 +233,71 @@ public final class ModelRendererTurboBatch {
 	}
 
 	/**
+	 * Renders rotary snowplow blade parts as an animated dynamic group.
+	 *
+	 * <p>These parts are intentionally not part of the static body prebatch. The geometry can be
+	 * cached by each {@link ModelRendererTurbo}, but the blade position is an entity/frame state.
+	 * In other words: cache the blade shape, not the blade's animated position. This same split is
+	 * the pattern future wheel animation should follow.</p>
+	 */
+	public static boolean renderRotaryGroup(Object owner, AbstractRotarySnowPlow plow, float scale, boolean rotorder) {
+		if (owner == null || plow == null) {
+			return false;
+		}
+		List<ModelRendererTurbo> rotary = getDynamicPartGroups(owner).rotary;
+		if (rotary.isEmpty()) {
+			return false;
+		}
+		updateRotaryBladeAngle(plow);
+		Context context = ACTIVE.get();
+		boolean wasFlushing = context != null && context.flushing;
+		if (context != null) {
+			context.flushing = true;
+		}
+		try {
+			for (ModelRendererTurbo turbo : rotary) {
+				GL11.glPushMatrix();
+				GL11.glTranslatef(turbo.rotationPointX * scale, turbo.rotationPointY * scale, turbo.rotationPointZ * scale);
+				if (plow.isRotaryOn()) {
+					GL11.glRotatef(plow.bladeRenderAngle * 57.29578F, 1F, 0F, 0F);
+				}
+				GL11.glTranslatef(-turbo.rotationPointX * scale, -turbo.rotationPointY * scale, -turbo.rotationPointZ * scale);
+				turbo.render(scale, rotorder);
+				GL11.glPopMatrix();
+			}
+		}
+		finally {
+			if (context != null) {
+				context.flushing = wasFlushing;
+			}
+		}
+		return true;
+	}
+
+	private static void updateRotaryBladeAngle(AbstractRotarySnowPlow plow) {
+		long now = System.nanoTime();
+		if (plow.bladeRenderLastTime == 0L) {
+			plow.bladeRenderLastTime = now;
+		}
+		float elapsedMs = (now - plow.bladeRenderLastTime) / 1000000F;
+		plow.bladeRenderLastTime = now;
+		float idleDivisor = 500.0F;
+		float maxDivisor = 150.0F;
+		float maxSpeed = 1.0F;
+		double trainSpeed = Math.abs(plow.getSpeed());
+		double divisor = idleDivisor - (idleDivisor - maxDivisor) * Math.min(trainSpeed / maxSpeed, 1.0F);
+		if (plow.isRotaryOn()) {
+			plow.bladeRenderAngle -= elapsedMs / divisor;
+		}
+		if (plow.bladeRenderAngle > Math.PI * 2F) {
+			plow.bladeRenderAngle -= Math.PI * 2F;
+		}
+		if (plow.bladeRenderAngle < -Math.PI * 2F) {
+			plow.bladeRenderAngle += Math.PI * 2F;
+		}
+	}
+
+	/**
 	 * Fast path for large generated {@code ModelConverter.bodyModel} arrays.
 	 *
 	 * <p>This is the main performance win. Instead of rendering hundreds of body boxes one by
@@ -320,6 +387,79 @@ public final class ModelRendererTurboBatch {
 		return false;
 	}
 
+	private static DynamicPartGroups getDynamicPartGroups(Object owner) {
+		DynamicPartGroups cached = DYNAMIC_GROUPS.get(owner);
+		if (cached != null) {
+			return cached;
+		}
+		DynamicPartGroups groups = new DynamicPartGroups();
+		Set<ModelRendererTurbo> seen = Collections.newSetFromMap(new IdentityHashMap<ModelRendererTurbo, Boolean>());
+		if (owner instanceof BOBRollingStockModel) {
+			collectDynamicFVTMGroups(groups, seen, ((BOBRollingStockModel)owner).getBaseModel());
+		}
+		if (owner instanceof ModelConverter) {
+			collectDynamicArray(groups, seen, ((ModelConverter)owner).bodyModel);
+		}
+		if (owner instanceof FVTMFormatBase) {
+			collectDynamicFVTMGroups(groups, seen, (FVTMFormatBase)owner);
+		}
+		collectDynamicFields(groups, seen, owner);
+		DYNAMIC_GROUPS.put(owner, groups);
+		return groups;
+	}
+
+	private static void collectDynamicFVTMGroups(DynamicPartGroups groups, Set<ModelRendererTurbo> seen, FVTMFormatBase model) {
+		if (model == null || model.groups == null) {
+			return;
+		}
+		for (FVTMFormatBase.TurboList group : model.groups) {
+			if (group == null) {
+				continue;
+			}
+			for (ModelRendererTurbo turbo : group) {
+				collectDynamicPart(groups, seen, turbo);
+			}
+		}
+	}
+
+	private static void collectDynamicFields(DynamicPartGroups groups, Set<ModelRendererTurbo> seen, Object owner) {
+		Class<?> current = owner.getClass();
+		while (current != null) {
+			Field[] declared = current.getDeclaredFields();
+			for (Field field : declared) {
+				if (!field.getType().isArray() || field.getType().getComponentType() != ModelRendererTurbo.class) {
+					continue;
+				}
+				field.setAccessible(true);
+				try {
+					collectDynamicArray(groups, seen, (ModelRendererTurbo[])field.get(owner));
+				}
+				catch (IllegalAccessException ignored) {
+				}
+			}
+			current = current.getSuperclass();
+		}
+	}
+
+	private static void collectDynamicArray(DynamicPartGroups groups, Set<ModelRendererTurbo> seen, ModelRendererTurbo[] model) {
+		if (model == null) {
+			return;
+		}
+		for (ModelRendererTurbo turbo : model) {
+			collectDynamicPart(groups, seen, turbo);
+		}
+	}
+
+	private static void collectDynamicPart(DynamicPartGroups groups, Set<ModelRendererTurbo> seen, ModelRendererTurbo turbo) {
+		if (turbo == null || seen.contains(turbo)) {
+			return;
+		}
+		seen.add(turbo);
+		if (isRotaryPartName(turbo.boxName)) {
+			groups.rotary.add(turbo);
+		}
+	}
+
 	private static boolean isSafeStaticBodyFieldName(String name) {
 		return !containsUnsafeStaticBodyName(name);
 	}
@@ -336,6 +476,11 @@ public final class ModelRendererTurboBatch {
 		return turbo == null || !containsUnsafeStaticBodyName(turbo.boxName);
 	}
 
+	private static boolean isRotaryPartName(String name) {
+		String lower = name == null ? "" : name.toLowerCase();
+		return lower.contains("rotary");
+	}
+
 	private static boolean containsUnsafeStaticBodyName(String name) {
 		String lower = name == null ? "" : name.toLowerCase();
 		if (lower.equals("open")
@@ -344,6 +489,8 @@ public final class ModelRendererTurboBatch {
 				|| lower.contains("bogie")
 				|| lower.contains("truck")
 				|| lower.contains("wheel")
+				|| lower.contains("axle")
+				|| lower.contains("rod")
 				|| lower.contains("door")
 				|| lower.contains("blade")
 				|| lower.contains("rotary")
@@ -730,6 +877,10 @@ public final class ModelRendererTurboBatch {
 				return null;
 			}
 		}
+	}
+
+	private static final class DynamicPartGroups {
+		private final List<ModelRendererTurbo> rotary = new ArrayList<ModelRendererTurbo>();
 	}
 
 	static final class Entry {
