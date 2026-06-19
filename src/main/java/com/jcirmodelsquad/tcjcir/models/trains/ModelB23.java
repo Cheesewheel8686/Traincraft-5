@@ -1947,7 +1947,7 @@ public class ModelB23 extends ModelConverter //Same as Filename
 				bits.render(entity, f, f1, f2, f3, f4, f5);
 				GL11.glPopMatrix();
 			}
-		} else if (GetColor(entity) == 6||GetColor(entity) == 14236){
+		} else if (GetColor(entity) == 6||GetColor(entity) == 15){
 			//type b silver early
 			Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/TypeB_2_Silver.png"));
 			GL11.glPushMatrix();

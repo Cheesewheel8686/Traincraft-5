@@ -29,8 +29,9 @@ public class DieselSD50 extends DieselTrain {
         InsertTexture(7, "Blandsville & Blanklands Terminal Railroad Association");
         InsertTexture(8, "HBRY");
         InsertTexture(9, "FNCC KIT-L", LockoutGroup.FNCC);
-        InsertTexture(10, "Seaboard System");
-        InsertTexture(11, "Chessie System");
+        InsertTexture(10, "FNCC KIT80", LockoutGroup.FNCC);
+        InsertTexture(11, "Seaboard System");
+        InsertTexture(12, "Chessie System");
     }
 
     @Override
