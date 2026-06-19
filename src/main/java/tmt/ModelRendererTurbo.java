@@ -25,11 +25,8 @@ import java.util.*;
  * @license http://fexcraft.net/license?id=tmt
  *
  */
-public class ModelRendererTurbo {
-
-    private static final boolean SPLIT_NON_PLANAR_SHAPEBOX_QUADS = false;
-    private static final float NON_PLANAR_QUAD_EPSILON = 0.001F;
-
+public class ModelRendererTurbo
+{
     public List<TexturedPolygon> faces = new ArrayList<>();
     public float rotationPointX, rotationPointY, rotationPointZ;
     public float rotateAngleX, rotateAngleY, rotateAngleZ;
@@ -297,9 +294,6 @@ public class ModelRendererTurbo {
             if(sides.length > 4 && !sides[4]) poly[4] = addPolygonReturn(new TexturedVertex[] { tv1, tv0, tv3, tv2 }, textureOffsetX + x0, textureOffsetY + yp, textureOffsetX + x0 + w, textureOffsetY + yp + h);
             if(sides.length > 5 && !sides[5]) poly[5] = addPolygonReturn(new TexturedVertex[] { tv4, tv5, tv6, tv7 }, textureOffsetX + x0 + x2 + x3, textureOffsetY + yp, textureOffsetX + x0 + x2 + x3 + w, textureOffsetY + yp + h);
         }
-        if(SPLIT_NON_PLANAR_SHAPEBOX_QUADS){
-            poly = splitNonPlanarQuads(poly);
-        }
         if(mirror ^ flip){
             for(int l = 0; l < poly.length; l++){
                 poly[l].flipFace();
@@ -318,65 +312,6 @@ public class ModelRendererTurbo {
             poly = polygons;
         }
         return copyTo(poly);
-    }
-
-    private TexturedPolygon[] splitNonPlanarQuads(TexturedPolygon[] source){
-        ArrayList<TexturedPolygon> result = new ArrayList<TexturedPolygon>();
-        for(TexturedPolygon polygon : source){
-            if(polygon == null){
-                result.add(null);
-            }
-            else if(isNonPlanarQuad(polygon)){
-                TexturedPolygon[] split = splitQuad(polygon);
-                result.add(split[0]);
-                result.add(split[1]);
-            }
-            else{
-                result.add(polygon);
-            }
-        }
-        return result.toArray(new TexturedPolygon[result.size()]);
-    }
-
-    private boolean isNonPlanarQuad(TexturedPolygon polygon){
-        if(polygon.vertices.length != 4){
-            return false;
-        }
-        Vec3f normal = faceNormal(polygon.vertices[0], polygon.vertices[1], polygon.vertices[2]);
-        if(isZero(normal)){
-            return false;
-        }
-        Vec3f edge = polygon.vertices[3].vector3F.subtract(polygon.vertices[0].vector3F);
-        float distance = MathHelper.abs(dot(normal, edge));
-        return distance > NON_PLANAR_QUAD_EPSILON;
-    }
-
-    private TexturedPolygon[] splitQuad(TexturedPolygon polygon){
-        TexturedVertex[] vertices = polygon.vertices;
-        Vec3f normalA = faceNormal(vertices[0], vertices[1], vertices[2]);
-        Vec3f normalB = faceNormal(vertices[0], vertices[2], vertices[3]);
-        Vec3f normalC = faceNormal(vertices[0], vertices[1], vertices[3]);
-        Vec3f normalD = faceNormal(vertices[1], vertices[2], vertices[3]);
-        float split02 = dot(normalA, normalB);
-        float split13 = dot(normalC, normalD);
-        TexturedPolygon first;
-        TexturedPolygon second;
-        Vec3f sharedNormal;
-        if(split13 > split02){
-            first = new TexturedPolygon(new TexturedVertex[] {vertices[0], vertices[1], vertices[3]});
-            second = new TexturedPolygon(new TexturedVertex[] {vertices[1], vertices[2], vertices[3]});
-            sharedNormal = averageNormal(normalC, normalD);
-        }
-        else{
-            first = new TexturedPolygon(new TexturedVertex[] {vertices[0], vertices[1], vertices[2]});
-            second = new TexturedPolygon(new TexturedVertex[] {vertices[0], vertices[2], vertices[3]});
-            sharedNormal = averageNormal(normalA, normalB);
-        }
-        if(!isZero(sharedNormal)){
-            first.setNormals(sharedNormal.xCoord, sharedNormal.yCoord, sharedNormal.zCoord);
-            second.setNormals(sharedNormal.xCoord, sharedNormal.yCoord, sharedNormal.zCoord);
-        }
-        return new TexturedPolygon[] {first, second};
     }
 
     private Vec3f faceNormal(TexturedVertex a, TexturedVertex b, TexturedVertex c){
@@ -1929,95 +1864,11 @@ public class ModelRendererTurbo {
         compiled = true;
     }
 
-    void renderBatchGeometry(float scale, boolean bool){
-        if(field_1402_i || !showModel){
-            return;
-        }
-        if(rotateAngleX != 0.0F || rotateAngleY != 0.0F || rotateAngleZ != 0.0F){
-            GL11.glPushMatrix();
-            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
-            if(bool){
-                if(rotateAngleZ != 0.0F){
-                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
-                }
-                if(rotateAngleY != 0.0F){
-                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
-                }
-            }
-            else{
-                if(rotateAngleY != 0.0F){
-                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
-                }
-                if(rotateAngleZ != 0.0F){
-                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
-                }
-            }
-            if(rotateAngleX != 0.0F){
-                GL11.glRotatef(rotateAngleX * 57.29578F, 1.0F, 0.0F, 0.0F);
-            }
-            drawFaces(scale);
-            GL11.glPopMatrix();
-        }
-        else if(rotationPointX != 0.0F || rotationPointY != 0.0F || rotationPointZ != 0.0F){
-            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
-            drawFaces(scale);
-            GL11.glTranslatef(-rotationPointX * scale, -rotationPointY * scale, -rotationPointZ * scale);
-        }
-        else{
-            drawFaces(scale);
-        }
-    }
-
     void renderBatchGeometryRemainder(float scale, boolean bool){
         if(field_1402_i || !showModel){
             return;
         }
         renderBatchGeometryFiltered(scale, bool, false);
-    }
-
-    void ensureBatchDisplayList(float scale){
-        if(!compiled || forcedRecompile){
-            compileDisplayList(scale);
-        }
-    }
-
-    void renderBatchDisplayList(float scale, boolean bool){
-        if(field_1402_i || !showModel){
-            return;
-        }
-        if(rotateAngleX != 0.0F || rotateAngleY != 0.0F || rotateAngleZ != 0.0F){
-            GL11.glPushMatrix();
-            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
-            if(bool){
-                if(rotateAngleZ != 0.0F){
-                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
-                }
-                if(rotateAngleY != 0.0F){
-                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
-                }
-            }
-            else{
-                if(rotateAngleY != 0.0F){
-                    GL11.glRotatef(rotateAngleY * 57.29578F, 0.0F, 1.0F, 0.0F);
-                }
-                if(rotateAngleZ != 0.0F){
-                    GL11.glRotatef(rotateAngleZ * 57.29578F, 0.0F, 0.0F, 1.0F);
-                }
-            }
-            if(rotateAngleX != 0.0F){
-                GL11.glRotatef(rotateAngleX * 57.29578F, 1.0F, 0.0F, 0.0F);
-            }
-            callDisplayList();
-            GL11.glPopMatrix();
-        }
-        else if(rotationPointX != 0.0F || rotationPointY != 0.0F || rotationPointZ != 0.0F){
-            GL11.glTranslatef(rotationPointX * scale, rotationPointY * scale, rotationPointZ * scale);
-            callDisplayList();
-            GL11.glTranslatef(-rotationPointX * scale, -rotationPointY * scale, -rotationPointZ * scale);
-        }
-        else{
-            callDisplayList();
-        }
     }
 
     void appendBatchGeometry(Tessellator tessellator, float scale, boolean bool, int mode){
