@@ -9,7 +9,6 @@ import train.common.api.AbstractRotarySnowPlow;
 import train.common.api.EntityRollingStock;
 import train.common.api.IRollingStockLightControls;
 import train.common.core.handlers.ConfigHandler;
-import train.client.render.RenderResourceProfiler;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -187,20 +186,12 @@ public final class ModelRendererTurboBatch {
 			}
 		}
 		if (entries.size() < MIN_BATCH_SIZE) {
-			RenderResourceProfiler.recordBatchSource("fvtmStatic", owner, entries.size(), false);
 			return false;
 		}
 		for (Entry entry : entries) {
 			context.suppressed.add(entry.turbo);
 		}
-		RenderResourceProfiler.recordBatchSource("fvtmStatic", owner, entries.size(), true);
-		long batchStartNs = RenderResourceProfiler.beginBatchSource();
-		try {
-			renderEntries(context, entries);
-		}
-		finally {
-			RenderResourceProfiler.endBatchSource("fvtmStatic", owner, batchStartNs, true);
-		}
+		renderEntries(context, entries);
 		return true;
 	}
 
@@ -225,21 +216,13 @@ public final class ModelRendererTurboBatch {
 		}
 		List<Entry> entries = collectFVTMRuntimeEntries(context, groups, scale, rotorder, false);
 		if (entries.size() < FVTM_RUNTIME_MIN_BATCH_SIZE) {
-			RenderResourceProfiler.recordBatchSource("fvtmRuntime", owner, entries.size(), false);
 			return runtimeSuppressed;
 		}
 		for (Entry entry : entries) {
 			context.suppressed.add(entry.turbo);
 			runtimeSuppressed.add(entry.turbo);
 		}
-		RenderResourceProfiler.recordBatchSource("fvtmRuntime", owner, entries.size(), true);
-		long batchStartNs = RenderResourceProfiler.beginBatchSource();
-		try {
-			renderEntries(context, entries, FVTM_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(owner), FVTM_RUNTIME_BATCH_INDEX, true);
-		}
-		finally {
-			RenderResourceProfiler.endBatchSource("fvtmRuntime", owner, batchStartNs, true);
-		}
+		renderEntries(context, entries, FVTM_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(owner), FVTM_RUNTIME_BATCH_INDEX, true);
 		return runtimeSuppressed;
 	}
 
@@ -261,23 +244,9 @@ public final class ModelRendererTurboBatch {
 		}
 		List<Entry> entries = collectFVTMRuntimeEntries(context, groups, scale, rotorder, false);
 		if (entries.size() < FVTM_RUNTIME_MIN_BATCH_SIZE) {
-			if (recordProfilerSource) {
-				RenderResourceProfiler.recordBatchSource("fvtmDetailLayout", owner, entries.size(), placements, false);
-			}
 			return false;
 		}
-		if (recordProfilerSource) {
-			RenderResourceProfiler.recordBatchSource("fvtmDetailLayout", owner, entries.size(), placements, true);
-		}
-		long batchStartNs = RenderResourceProfiler.beginBatchSource();
-		try {
-			renderEntries(context, entries, FVTM_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(owner), FVTM_RUNTIME_BATCH_INDEX, true);
-		}
-		finally {
-			if (recordProfilerSource) {
-				RenderResourceProfiler.endBatchSource("fvtmDetailLayout", owner, placements, batchStartNs, true);
-			}
-		}
+		renderEntries(context, entries, FVTM_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(owner), FVTM_RUNTIME_BATCH_INDEX, true);
 		return true;
 	}
 
@@ -295,11 +264,8 @@ public final class ModelRendererTurboBatch {
 		}
 		List<Entry> entries = collectFVTMRuntimeEntries(context, groups, scale, rotorder, false);
 		if (entries.size() < FVTM_RUNTIME_MIN_BATCH_SIZE) {
-			RenderResourceProfiler.recordBatchSource("fvtmDetailLayout", owner, entries.size(), placements.size(), false);
 			return false;
 		}
-		RenderResourceProfiler.recordBatchSource("fvtmDetailLayout", owner, entries.size(), placements.size(), true);
-		long batchStartNs = RenderResourceProfiler.beginBatchSource();
 		context.flushing = true;
 		try {
 			int cacheOwnerId = sharedSubmodelOwnerId(owner);
@@ -315,7 +281,6 @@ public final class ModelRendererTurboBatch {
 		}
 		finally {
 			context.flushing = false;
-			RenderResourceProfiler.endBatchSource("fvtmDetailLayout", owner, placements.size(), batchStartNs, true);
 		}
 		return true;
 	}
@@ -380,17 +345,9 @@ public final class ModelRendererTurboBatch {
 		}
 		List<Entry> entries = collectNestedStaticEntries(nestedOwner, scale, rotorder);
 		if (entries.size() < NESTED_RUNTIME_MIN_BATCH_SIZE || !containsTurbo(entries, turbo)) {
-			RenderResourceProfiler.recordBatchSource("nestedRuntime", nestedOwner, entries.size(), false);
 			return false;
 		}
-		RenderResourceProfiler.recordBatchSource("nestedRuntime", nestedOwner, entries.size(), true);
-		long batchStartNs = RenderResourceProfiler.beginBatchSource();
-		try {
-			renderEntries(context, entries, NESTED_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(nestedOwner), NESTED_RUNTIME_BATCH_INDEX, true);
-		}
-		finally {
-			RenderResourceProfiler.endBatchSource("nestedRuntime", nestedOwner, batchStartNs, true);
-		}
+		renderEntries(context, entries, NESTED_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(nestedOwner), NESTED_RUNTIME_BATCH_INDEX, true);
 		context.scopedSuppressionOwner = nestedOwner;
 		for (Entry entry : entries) {
 			context.scopedSuppressed.add(entry.turbo);
@@ -514,18 +471,10 @@ public final class ModelRendererTurboBatch {
 			for (Entry entry : entries) {
 				context.suppressed.add(entry.turbo);
 			}
-			RenderResourceProfiler.recordBatchSource("staticArray", owner, entries.size(), true);
-			long batchStartNs = RenderResourceProfiler.beginBatchSource();
-			try {
-				renderEntries(context, entries);
-			}
-			finally {
-				RenderResourceProfiler.endBatchSource("staticArray", owner, batchStartNs, true);
-			}
+			renderEntries(context, entries);
 			context.suppressOnly = true;
 			return true;
 		}
-		RenderResourceProfiler.recordBatchSource("staticArray", owner, entries.size(), false);
 		context.suppressOnly = true;
 		return false;
 	}
@@ -890,7 +839,6 @@ public final class ModelRendererTurboBatch {
 		context.flushing = true;
 		try {
 			if (entries.size() < minBatchSize) {
-				RenderResourceProfiler.recordBatchImmediate(entries.size());
 				renderImmediate(entries);
 			}
 			else {
@@ -1111,8 +1059,6 @@ public final class ModelRendererTurboBatch {
 		BatchKey key = new BatchKey(cacheOwnerId, cacheBatchIndex, group);
 		long signature = sharedGeometrySignature ? sharedGeometrySignature(entries) : signature(entries);
 		CompiledBatch batch = CACHE.get(key);
-		boolean hit = batch != null && batch.signature == signature;
-		boolean stale = batch != null && batch.signature != signature;
 		if (batch == null || batch.signature != signature) {
 			if (batch != null) {
 				GL11.glDeleteLists(batch.displayList, 1);
@@ -1120,7 +1066,6 @@ public final class ModelRendererTurboBatch {
 			batch = compile(entries, signature);
 			CACHE.put(key, batch);
 		}
-		RenderResourceProfiler.recordBatchCache(hit, stale, entries.size());
 		return batch;
 	}
 

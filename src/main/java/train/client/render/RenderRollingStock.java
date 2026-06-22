@@ -43,9 +43,6 @@ public class RenderRollingStock extends Render {
 
 	public final void renderTheMinecart(EntityRollingStock cart, double x, double y, double z, float yaw, float time, boolean renderModeGUI)
 	{
-		long profilerStart = RenderResourceProfiler.begin();
-		try
-		{
 		GL11.glPushMatrix();
 		long var10 = cart.getEntityId() * 493286711L;
 		var10 = var10 * var10 * 4392167121L + var10 * 98761L;
@@ -339,11 +336,6 @@ public class RenderRollingStock extends Render {
 		}
 		GL11.glEnable(GL11.GL_LIGHTING);
 		GL11.glPopMatrix();
-		}
-		finally
-		{
-			RenderResourceProfiler.endRollingStock(cart, profilerStart, renderModeGUI);
-		}
 	}
 
 	private static void renderSmokeFX(EntityRollingStock cart, float yaw, float pitch, String smokeType, ArrayList<double[]> smokeFX, int smokeIterations, float time) {
