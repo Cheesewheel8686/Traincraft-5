@@ -48,9 +48,25 @@ public class ModelRendererTurbo
     public String boxName;
     public boolean isShape = false;
     public boolean isBatchUnsafeShape = false;
+
+    /*
+     * The batch renderer does not emit raw TexturedPolygon data directly. It
+     * first builds this small canonical face cache so shape boxes with collapsed
+     * or nearly-collapsed corners keep their visible faces, while truly zero-area
+     * faces are ignored. That is what fixed the gray triangle/edge artifacts
+     * without giving up the large body-batch performance gain.
+     */
     private static final float BATCH_DEGENERATE_FACE_AREA_EPSILON = 1.0E-5F;
     private List<BatchFace> batchFaces = new ArrayList<BatchFace>();
     private boolean batchFacesDirty = true;
+
+    /*
+     * The owner is the model object that created this part. ModelRendererTurboBatch
+     * uses it to tell a main body part from a nested submodel part, such as a
+     * bogie. The cache stores local shape only; the caller's current GL matrix
+     * state still decides where that owner is placed on the train.
+     */
+    private final Object modelOwner;
     
     private String defaultTexture;
     
@@ -69,6 +85,7 @@ public class ModelRendererTurbo
 	public static final float pi = (float)Math.PI;
 	
 	public ModelRendererTurbo(Object Object, String s){
+        modelOwner = Object;
     	flip = false;
         compiled = false;
         displayList = 0;
@@ -84,6 +101,10 @@ public class ModelRendererTurbo
         defaultTexture = "";
         useLegacyCompiler = true;
 	}
+
+    Object getModelOwner(){
+        return modelOwner;
+    }
 	
 	public ModelRendererTurbo(Object Object){
 		this(Object, "");
@@ -1718,6 +1739,14 @@ public class ModelRendererTurbo
         if(!showModel){
             return;
         }
+        /*
+         * Every normal MRT render first asks the batch system whether this part
+         * has already been emitted. Returning true means this exact part was
+         * already drawn by a static body, FVTM runtime, nested submodel, or
+         * detail-layout batch and should be skipped now. Returning false leaves
+         * the legacy per-part display-list path below in charge, which is
+         * important for animated, texture-swapped, or unsupported parts.
+         */
         if(ModelRendererTurboBatch.capture(this, scale, bool)){
             return;
         }
@@ -1872,6 +1901,13 @@ public class ModelRendererTurbo
     }
 
     void appendBatchGeometry(Tessellator tessellator, float scale, boolean bool, int mode){
+        /*
+         * This is the fast merged-geometry path used while compiling a master
+         * body/submodel batch. It writes cleaned BatchFace data into the caller's
+         * Tessellator instead of calling this part's own display list, cutting the
+         * per-car draw-call overhead from hundreds of MRT parts to a few grouped
+         * batch calls.
+         */
         if(field_1402_i || !showModel){
             return;
         }
@@ -1913,13 +1949,15 @@ public class ModelRendererTurbo
 
     private Vec3f rotateBatchVector(float x, float y, float z, boolean bool){
         /*
-         * The normal render path uses OpenGL matrix calls. Those calls are written as
-         * translate, then rotate Y/Z, then rotate X, but OpenGL applies the final matrix to
-         * vertices in the opposite effective order. The batched path bakes vertices on the
-         * CPU, so it has to apply that effective order directly. This mostly goes unnoticed
-         * for parts with only one rotation axis, but mirrored curved parts such as Amfleet
-         * roof/body pieces use a curve rotation plus a 180-degree Y rotation; using the GL
-         * call order here makes only those double-rotated pieces land incorrectly.
+         * The normal render path builds a fixed-function OpenGL matrix with
+         * glTranslatef/glRotatef calls. OpenGL post-multiplies those transforms,
+         * so vertices see the rotations in reverse of the order the calls are
+         * issued after the translation. The batched path bakes the same local
+         * transform on the CPU, so it must apply that effective vertex order
+         * directly.
+         *
+         * This usually hides on single-axis parts, but double-rotated curved
+         * pieces such as Amfleet roof/body sections expose the difference.
          */
         Vec3f vector = rotateBatchX(x, y, z);
         if(bool){
@@ -2029,6 +2067,13 @@ public class ModelRendererTurbo
     }
 
     private void rebuildBatchFaces(){
+        /*
+         * Build the batch-safe view of this part's faces. The legacy face normal
+         * can be zero on some valid shape-box quads when the first three vertices
+         * happen to be collinear. In that case we keep the geometry and choose a
+         * robust normal from the largest valid triangle in the polygon. Only faces
+         * with no measurable area are dropped.
+         */
         List<BatchFace> rebuilt = new ArrayList<BatchFace>(faces.size());
         for(TexturedPolygon polygon : faces){
             if(polygon == null || polygon.vertices == null){

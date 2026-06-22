@@ -88,6 +88,9 @@ public class BEOModelLoader {
             stream.close();
             vecs.clear();
             uvs.clear();
+            if (model.name == null || model.name.isEmpty() || "unnamed model".equalsIgnoreCase(model.name)) {
+                model.name = loc;
+            }
             return model;
         } catch (Exception e) {
             throw new RuntimeException(e);

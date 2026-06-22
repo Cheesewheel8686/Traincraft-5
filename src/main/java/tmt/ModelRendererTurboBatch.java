@@ -9,6 +9,7 @@ import train.common.api.AbstractRotarySnowPlow;
 import train.common.api.EntityRollingStock;
 import train.common.api.IRollingStockLightControls;
 import train.common.core.handlers.ConfigHandler;
+import train.client.render.RenderResourceProfiler;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -38,10 +39,14 @@ public final class ModelRendererTurboBatch {
 	private static final int MIN_BATCH_SIZE = 64;
 	private static final int FVTM_RUNTIME_MIN_BATCH_SIZE = 8;
 	private static final int FVTM_RUNTIME_BATCH_INDEX = -1;
+	private static final int NESTED_RUNTIME_MIN_BATCH_SIZE = 8;
+	private static final int NESTED_RUNTIME_BATCH_INDEX = -2;
 	private static final ThreadLocal<Context> ACTIVE = new ThreadLocal<Context>();
 	private static final Map<BatchKey, CompiledBatch> CACHE = new HashMap<BatchKey, CompiledBatch>();
+	private static final Map<DetailLayoutKey, CompiledBatch> DETAIL_LAYOUT_CACHE = new HashMap<DetailLayoutKey, CompiledBatch>();
 	private static final Map<ModelRendererTurbo, RenderGroup> GROUP_CACHE = new IdentityHashMap<ModelRendererTurbo, RenderGroup>();
 	private static final Map<Class<?>, List<StaticBodyField>> STATIC_BODY_FIELDS = new HashMap<Class<?>, List<StaticBodyField>>();
+	private static final Map<Class<?>, List<StaticBodyField>> NESTED_MODEL_FIELDS = new HashMap<Class<?>, List<StaticBodyField>>();
 	private static final Map<Object, DynamicPartGroups> DYNAMIC_GROUPS = new IdentityHashMap<Object, DynamicPartGroups>();
 
 	private ModelRendererTurboBatch() {
@@ -89,7 +94,16 @@ public final class ModelRendererTurboBatch {
 	 */
 	public static boolean capture(ModelRendererTurbo turbo, float scale, boolean rotorder) {
 		Context context = ACTIVE.get();
+		if (context != null && context.scopedSuppressed.remove(turbo)) {
+			if (context.scopedSuppressed.isEmpty()) {
+				context.scopedSuppressionOwner = null;
+			}
+			return true;
+		}
 		if (context != null && context.suppressed.contains(turbo)) {
+			return true;
+		}
+		if (context != null && context.suppressOnly && tryRenderNestedStaticModel(context, turbo, scale, rotorder)) {
 			return true;
 		}
 		if (context == null || context.suppressOnly || !context.captureEnabled || context.flushing || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
@@ -173,12 +187,20 @@ public final class ModelRendererTurboBatch {
 			}
 		}
 		if (entries.size() < MIN_BATCH_SIZE) {
+			RenderResourceProfiler.recordBatchSource("fvtmStatic", owner, entries.size(), false);
 			return false;
 		}
 		for (Entry entry : entries) {
 			context.suppressed.add(entry.turbo);
 		}
-		renderEntries(context, entries);
+		RenderResourceProfiler.recordBatchSource("fvtmStatic", owner, entries.size(), true);
+		long batchStartNs = RenderResourceProfiler.beginBatchSource();
+		try {
+			renderEntries(context, entries);
+		}
+		finally {
+			RenderResourceProfiler.endBatchSource("fvtmStatic", owner, batchStartNs, true);
+		}
 		return true;
 	}
 
@@ -187,8 +209,9 @@ public final class ModelRendererTurboBatch {
 	 *
 	 * <p>This recovers the fast pre-bogie-fix behavior for BOB details and other nested FVTM
 	 * models, but without the old transform bug. The batch is emitted immediately while the
-	 * caller's current GL matrix, texture, and light state are still active. Then the normal
-	 * FVTM loop runs and skips only the parts drawn by this local batch.</p>
+	 * caller's current model-view matrix, currently bound texture, and light state are still
+	 * active. Then the normal FVTM loop runs and skips only the parts drawn by this local
+	 * batch.</p>
 	 *
 	 * <p>The suppressions returned from this method are temporary. They must be released when
 	 * that specific FVTM render call ends, otherwise the same detail model reused elsewhere in
@@ -200,26 +223,126 @@ public final class ModelRendererTurboBatch {
 		if (context == null || context.flushing || groups == null || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
 			return runtimeSuppressed;
 		}
-		List<Entry> entries = new ArrayList<Entry>();
-		for (FVTMFormatBase.TurboList group : groups) {
-			if (group == null) {
-				continue;
-			}
-			for (ModelRendererTurbo turbo : group) {
-				if (!context.suppressed.contains(turbo) && isBatchCompatible(turbo)) {
-					entries.add(new Entry(turbo, scale, rotorder, classify(turbo)));
-				}
-			}
-		}
+		List<Entry> entries = collectFVTMRuntimeEntries(context, groups, scale, rotorder, false);
 		if (entries.size() < FVTM_RUNTIME_MIN_BATCH_SIZE) {
+			RenderResourceProfiler.recordBatchSource("fvtmRuntime", owner, entries.size(), false);
 			return runtimeSuppressed;
 		}
 		for (Entry entry : entries) {
 			context.suppressed.add(entry.turbo);
 			runtimeSuppressed.add(entry.turbo);
 		}
-		renderEntries(context, entries, FVTM_RUNTIME_MIN_BATCH_SIZE, System.identityHashCode(owner), FVTM_RUNTIME_BATCH_INDEX);
+		RenderResourceProfiler.recordBatchSource("fvtmRuntime", owner, entries.size(), true);
+		long batchStartNs = RenderResourceProfiler.beginBatchSource();
+		try {
+			renderEntries(context, entries, FVTM_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(owner), FVTM_RUNTIME_BATCH_INDEX, true);
+		}
+		finally {
+			RenderResourceProfiler.endBatchSource("fvtmRuntime", owner, batchStartNs, true);
+		}
 		return runtimeSuppressed;
+	}
+
+	public static boolean renderFVTMDetailLayout(Object owner, List<FVTMFormatBase.TurboList> groups, float scale, boolean rotorder, int placements) {
+		return renderFVTMDetailLayout(owner, groups, scale, rotorder, placements, true);
+	}
+
+	/*
+	 * Older BOB detail code can call this after it has already applied one
+	 * detail placement to the model-view matrix. In that case the geometry batch
+	 * is called immediately, using the caller's current transform and currently
+	 * bound texture. The placement count is only for profiling; this overload
+	 * does not replay the geometry at multiple placements.
+	 */
+	public static boolean renderFVTMDetailLayout(Object owner, List<FVTMFormatBase.TurboList> groups, float scale, boolean rotorder, int placements, boolean recordProfilerSource) {
+		Context context = ACTIVE.get();
+		if (context == null || context.flushing || owner == null || groups == null || placements < 2 || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
+			return false;
+		}
+		List<Entry> entries = collectFVTMRuntimeEntries(context, groups, scale, rotorder, false);
+		if (entries.size() < FVTM_RUNTIME_MIN_BATCH_SIZE) {
+			if (recordProfilerSource) {
+				RenderResourceProfiler.recordBatchSource("fvtmDetailLayout", owner, entries.size(), placements, false);
+			}
+			return false;
+		}
+		if (recordProfilerSource) {
+			RenderResourceProfiler.recordBatchSource("fvtmDetailLayout", owner, entries.size(), placements, true);
+		}
+		long batchStartNs = RenderResourceProfiler.beginBatchSource();
+		try {
+			renderEntries(context, entries, FVTM_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(owner), FVTM_RUNTIME_BATCH_INDEX, true);
+		}
+		finally {
+			if (recordProfilerSource) {
+				RenderResourceProfiler.endBatchSource("fvtmDetailLayout", owner, placements, batchStartNs, true);
+			}
+		}
+		return true;
+	}
+
+	/*
+	 * Newer BOB detail batching uses this overload when it already knows every
+	 * repeated placement. The reusable local FVTM geometry is compiled once, then
+	 * a tiny layout display list replays that geometry under each placement
+	 * transform. This still draws every physical bogie/detail, but removes a lot
+	 * of repeated Java looping and per-part display-list calls.
+	 */
+	public static boolean renderFVTMDetailLayout(Object owner, List<FVTMFormatBase.TurboList> groups, float scale, boolean rotorder, List<DetailPlacement> placements) {
+		Context context = ACTIVE.get();
+		if (context == null || context.flushing || owner == null || groups == null || placements == null || placements.size() < 2 || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
+			return false;
+		}
+		List<Entry> entries = collectFVTMRuntimeEntries(context, groups, scale, rotorder, false);
+		if (entries.size() < FVTM_RUNTIME_MIN_BATCH_SIZE) {
+			RenderResourceProfiler.recordBatchSource("fvtmDetailLayout", owner, entries.size(), placements.size(), false);
+			return false;
+		}
+		RenderResourceProfiler.recordBatchSource("fvtmDetailLayout", owner, entries.size(), placements.size(), true);
+		long batchStartNs = RenderResourceProfiler.beginBatchSource();
+		context.flushing = true;
+		try {
+			int cacheOwnerId = sharedSubmodelOwnerId(owner);
+			renderDetailLayoutGroup(context, entries, RenderGroup.NORMAL, cacheOwnerId, placements);
+			renderDetailLayoutGroup(context, entries, RenderGroup.CULL, cacheOwnerId, placements);
+			renderDetailLayoutGroup(context, entries, RenderGroup.LAMP, cacheOwnerId, placements);
+			renderDetailLayoutGroup(context, entries, RenderGroup.DITCH, cacheOwnerId, placements);
+			renderDetailLayoutGroup(context, entries, RenderGroup.COMMANDER, cacheOwnerId, placements);
+			renderDetailLayoutGroup(context, entries, RenderGroup.PRIME1, cacheOwnerId, placements);
+			renderDetailLayoutGroup(context, entries, RenderGroup.PRIME2, cacheOwnerId, placements);
+			renderDetailLayoutGroup(context, entries, RenderGroup.PRIME3, cacheOwnerId, placements);
+			renderDetailLayoutGroup(context, entries, RenderGroup.PRIME4, cacheOwnerId, placements);
+		}
+		finally {
+			context.flushing = false;
+			RenderResourceProfiler.endBatchSource("fvtmDetailLayout", owner, placements.size(), batchStartNs, true);
+		}
+		return true;
+	}
+
+	/*
+	 * Runtime FVTM collection is intentionally separate from static body
+	 * collection. Static body collection uses strict names because it runs before
+	 * model code applies custom transforms. Runtime collection is called from
+	 * inside FVTMFormatBase.render(), where the current GL matrix and texture are
+	 * already correct, so it can accept more groups while still skipping parts
+	 * already drawn by an earlier explicit prebatch.
+	 */
+	private static List<Entry> collectFVTMRuntimeEntries(Context context, List<FVTMFormatBase.TurboList> groups, float scale, boolean rotorder, boolean strictStaticNames) {
+		List<Entry> entries = new ArrayList<Entry>();
+		for (FVTMFormatBase.TurboList group : groups) {
+			if (group == null || strictStaticNames && !isSafeFVTMGroupName(group.name)) {
+				continue;
+			}
+			for (ModelRendererTurbo turbo : group) {
+				if (!context.suppressed.contains(turbo)
+						&& isBatchCompatible(turbo)
+						&& (!strictStaticNames || isSafeFVTMPartName(turbo))) {
+					entries.add(new Entry(turbo, scale, rotorder, classify(turbo)));
+				}
+			}
+		}
+		return entries;
 	}
 
 	public static void releaseRuntimeSuppressions(ArrayList<ModelRendererTurbo> runtimeSuppressed) {
@@ -230,6 +353,62 @@ public final class ModelRendererTurboBatch {
 		for (ModelRendererTurbo turbo : runtimeSuppressed) {
 			context.suppressed.remove(turbo);
 		}
+	}
+
+	private static boolean tryRenderNestedStaticModel(Context context, ModelRendererTurbo turbo, float scale, boolean rotorder) {
+		/*
+		 * Generated submodels, such as Java bogie classes, are discovered lazily:
+		 * the first part render tells us which owner object is currently being
+		 * drawn. We then batch that owner's safe local arrays immediately under
+		 * the caller's active GL matrix. The suppression set is scoped to this one
+		 * submodel pass, so the same bogie object can render again for the rear
+		 * truck without disappearing.
+		 */
+		if (context.flushing || turbo == null || !ConfigHandler.ENABLE_TMT_MODEL_BATCHING) {
+			return false;
+		}
+		Object nestedOwner = turbo.getModelOwner();
+		if (nestedOwner == null
+				|| nestedOwner == context.owner
+				|| nestedOwner instanceof FVTMFormatBase
+				|| nestedOwner instanceof FVTMFormatBase.TurboList) {
+			return false;
+		}
+		if (context.scopedSuppressionOwner != null && context.scopedSuppressionOwner != nestedOwner) {
+			context.scopedSuppressed.clear();
+			context.scopedSuppressionOwner = null;
+		}
+		List<Entry> entries = collectNestedStaticEntries(nestedOwner, scale, rotorder);
+		if (entries.size() < NESTED_RUNTIME_MIN_BATCH_SIZE || !containsTurbo(entries, turbo)) {
+			RenderResourceProfiler.recordBatchSource("nestedRuntime", nestedOwner, entries.size(), false);
+			return false;
+		}
+		RenderResourceProfiler.recordBatchSource("nestedRuntime", nestedOwner, entries.size(), true);
+		long batchStartNs = RenderResourceProfiler.beginBatchSource();
+		try {
+			renderEntries(context, entries, NESTED_RUNTIME_MIN_BATCH_SIZE, sharedSubmodelOwnerId(nestedOwner), NESTED_RUNTIME_BATCH_INDEX, true);
+		}
+		finally {
+			RenderResourceProfiler.endBatchSource("nestedRuntime", nestedOwner, batchStartNs, true);
+		}
+		context.scopedSuppressionOwner = nestedOwner;
+		for (Entry entry : entries) {
+			context.scopedSuppressed.add(entry.turbo);
+		}
+		context.scopedSuppressed.remove(turbo);
+		if (context.scopedSuppressed.isEmpty()) {
+			context.scopedSuppressionOwner = null;
+		}
+		return true;
+	}
+
+	private static boolean containsTurbo(List<Entry> entries, ModelRendererTurbo turbo) {
+		for (Entry entry : entries) {
+			if (entry.turbo == turbo) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -335,10 +514,18 @@ public final class ModelRendererTurboBatch {
 			for (Entry entry : entries) {
 				context.suppressed.add(entry.turbo);
 			}
-			renderEntries(context, entries);
+			RenderResourceProfiler.recordBatchSource("staticArray", owner, entries.size(), true);
+			long batchStartNs = RenderResourceProfiler.beginBatchSource();
+			try {
+				renderEntries(context, entries);
+			}
+			finally {
+				RenderResourceProfiler.endBatchSource("staticArray", owner, batchStartNs, true);
+			}
 			context.suppressOnly = true;
 			return true;
 		}
+		RenderResourceProfiler.recordBatchSource("staticArray", owner, entries.size(), false);
 		context.suppressOnly = true;
 		return false;
 	}
@@ -358,6 +545,86 @@ public final class ModelRendererTurboBatch {
 		}
 		STATIC_BODY_FIELDS.put(type, fields);
 		return fields;
+	}
+
+	private static List<Entry> collectNestedStaticEntries(Object owner, float scale, boolean rotorder) {
+		if (owner == null || hasUnsafeNestedArrays(owner)) {
+			return Collections.emptyList();
+		}
+		List<StaticBodyField> fields = getNestedModelFields(owner.getClass());
+		if (fields.isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<Entry> entries = new ArrayList<Entry>();
+		Set<ModelRendererTurbo> seen = Collections.newSetFromMap(new IdentityHashMap<ModelRendererTurbo, Boolean>());
+		for (StaticBodyField source : fields) {
+			ModelRendererTurbo[] model = source.get(owner);
+			if (model == null || model.length == 0) {
+				continue;
+			}
+			for (ModelRendererTurbo turbo : model) {
+				if (turbo == null || seen.contains(turbo)) {
+					continue;
+				}
+				if (!isBatchCompatible(turbo) || !isSafeNestedPartName(turbo)) {
+					return Collections.emptyList();
+				}
+				seen.add(turbo);
+				entries.add(new Entry(turbo, scale, rotorder, classify(turbo)));
+			}
+		}
+		return entries;
+	}
+
+	private static List<StaticBodyField> getNestedModelFields(Class<?> type) {
+		List<StaticBodyField> cached = NESTED_MODEL_FIELDS.get(type);
+		if (cached != null) {
+			return cached;
+		}
+		List<StaticBodyField> fields = new ArrayList<StaticBodyField>();
+		Class<?> current = type;
+		while (current != null) {
+			Field[] declared = current.getDeclaredFields();
+			for (Field field : declared) {
+				if (!field.getType().isArray()
+						|| field.getType().getComponentType() != ModelRendererTurbo.class
+						|| !isSafeNestedModelFieldName(field.getName())
+						|| containsField(fields, field)) {
+					continue;
+				}
+				field.setAccessible(true);
+				fields.add(new StaticBodyField(field));
+			}
+			current = current.getSuperclass();
+		}
+		NESTED_MODEL_FIELDS.put(type, fields);
+		return fields;
+	}
+
+	private static boolean hasUnsafeNestedArrays(Object owner) {
+		Class<?> current = owner.getClass();
+		while (current != null) {
+			Field[] declared = current.getDeclaredFields();
+			for (Field field : declared) {
+				if (!field.getType().isArray() || field.getType().getComponentType() != ModelRendererTurbo.class) {
+					continue;
+				}
+				if (isSafeNestedModelFieldName(field.getName())) {
+					continue;
+				}
+				field.setAccessible(true);
+				try {
+					ModelRendererTurbo[] model = (ModelRendererTurbo[])field.get(owner);
+					if (model != null && model.length > 0) {
+						return true;
+					}
+				}
+				catch (IllegalAccessException ignored) {
+				}
+			}
+			current = current.getSuperclass();
+		}
+		return false;
 	}
 
 	private static void addSafeModelArrays(Class<?> type, List<StaticBodyField> fields) {
@@ -388,6 +655,12 @@ public final class ModelRendererTurboBatch {
 	}
 
 	private static DynamicPartGroups getDynamicPartGroups(Object owner) {
+		/*
+		 * Dynamic group lookup is cached by model instance. These parts are not
+		 * static body geometry: they need per-entity or per-frame logic such as a
+		 * rotary blade angle. We cache only the membership list so the renderer can
+		 * find those parts cheaply without baking their animated position.
+		 */
 		DynamicPartGroups cached = DYNAMIC_GROUPS.get(owner);
 		if (cached != null) {
 			return cached;
@@ -464,6 +737,10 @@ public final class ModelRendererTurboBatch {
 		return !containsUnsafeStaticBodyName(name);
 	}
 
+	private static boolean isSafeNestedModelFieldName(String name) {
+		return !containsUnsafeNestedModelName(name);
+	}
+
 	private static boolean isSafeFVTMGroupName(String name) {
 		return !containsUnsafeStaticBodyName(name);
 	}
@@ -476,18 +753,63 @@ public final class ModelRendererTurboBatch {
 		return turbo == null || !containsUnsafeStaticBodyName(turbo.boxName);
 	}
 
+	private static boolean isSafeNestedPartName(ModelRendererTurbo turbo) {
+		return turbo == null || !containsUnsafeNestedModelName(turbo.boxName);
+	}
+
 	private static boolean isRotaryPartName(String name) {
 		String lower = name == null ? "" : name.toLowerCase();
 		return lower.contains("rotary");
 	}
 
 	private static boolean containsUnsafeStaticBodyName(String name) {
+		/*
+		 * Static body prebatching is the most aggressive path, so its name filter
+		 * is broad. Anything that sounds animated, load-dependent, texture/detail
+		 * dependent, or transform-sensitive stays out of the up-front body batch
+		 * and renders later through its normal code path.
+		 */
 		String lower = name == null ? "" : name.toLowerCase();
 		if (lower.equals("open")
 				|| lower.equals("closed")
 				|| lower.equals("rotaryblades")
 				|| lower.contains("bogie")
 				|| lower.contains("truck")
+				|| lower.contains("wheel")
+				|| lower.contains("axle")
+				|| lower.contains("rod")
+				|| lower.contains("door")
+				|| lower.contains("blade")
+				|| lower.contains("rotary")
+				|| lower.contains("arm")
+				|| lower.contains("cargo")
+				|| lower.contains("load")
+				|| lower.contains("coal")
+				|| lower.contains("detail")
+				|| lower.contains("overlay")
+				|| lower.contains("coupler")
+				|| lower.contains("turret")
+				|| lower.contains("barrel")
+				|| lower.contains("track")
+				|| lower.contains("trailer")
+				|| lower.contains("steering")) {
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean containsUnsafeNestedModelName(String name) {
+		/*
+		 * Nested submodels are rendered under their caller's current matrix, so
+		 * names like bogie/truck are allowed here. Actual animated or conditional
+		 * pieces, such as wheels, rods, loads, doors, and rotary blades, are still
+		 * excluded so future animation or visibility rules are not frozen into a
+		 * static nested batch.
+		 */
+		String lower = name == null ? "" : name.toLowerCase();
+		if (lower.equals("open")
+				|| lower.equals("closed")
+				|| lower.equals("rotaryblades")
 				|| lower.contains("wheel")
 				|| lower.contains("axle")
 				|| lower.contains("rod")
@@ -557,25 +879,30 @@ public final class ModelRendererTurboBatch {
 	}
 
 	private static void renderEntries(Context context, List<Entry> entries, int minBatchSize) {
-		renderEntries(context, entries, minBatchSize, System.identityHashCode(context.owner), context.flushIndex);
+		renderEntries(context, entries, minBatchSize, System.identityHashCode(context.owner), context.flushIndex, false);
 	}
 
 	private static void renderEntries(Context context, List<Entry> entries, int minBatchSize, int cacheOwnerId, int cacheBatchIndex) {
+		renderEntries(context, entries, minBatchSize, cacheOwnerId, cacheBatchIndex, false);
+	}
+
+	private static void renderEntries(Context context, List<Entry> entries, int minBatchSize, int cacheOwnerId, int cacheBatchIndex, boolean sharedGeometrySignature) {
 		context.flushing = true;
 		try {
 			if (entries.size() < minBatchSize) {
+				RenderResourceProfiler.recordBatchImmediate(entries.size());
 				renderImmediate(entries);
 			}
 			else {
-				renderGroup(context, entries, RenderGroup.NORMAL, cacheOwnerId, cacheBatchIndex);
-				renderGroup(context, entries, RenderGroup.CULL, cacheOwnerId, cacheBatchIndex);
-				renderGroup(context, entries, RenderGroup.LAMP, cacheOwnerId, cacheBatchIndex);
-				renderGroup(context, entries, RenderGroup.DITCH, cacheOwnerId, cacheBatchIndex);
-				renderGroup(context, entries, RenderGroup.COMMANDER, cacheOwnerId, cacheBatchIndex);
-				renderGroup(context, entries, RenderGroup.PRIME1, cacheOwnerId, cacheBatchIndex);
-				renderGroup(context, entries, RenderGroup.PRIME2, cacheOwnerId, cacheBatchIndex);
-				renderGroup(context, entries, RenderGroup.PRIME3, cacheOwnerId, cacheBatchIndex);
-				renderGroup(context, entries, RenderGroup.PRIME4, cacheOwnerId, cacheBatchIndex);
+				renderGroup(context, entries, RenderGroup.NORMAL, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
+				renderGroup(context, entries, RenderGroup.CULL, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
+				renderGroup(context, entries, RenderGroup.LAMP, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
+				renderGroup(context, entries, RenderGroup.DITCH, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
+				renderGroup(context, entries, RenderGroup.COMMANDER, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
+				renderGroup(context, entries, RenderGroup.PRIME1, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
+				renderGroup(context, entries, RenderGroup.PRIME2, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
+				renderGroup(context, entries, RenderGroup.PRIME3, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
+				renderGroup(context, entries, RenderGroup.PRIME4, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
 			}
 		}
 		finally {
@@ -661,12 +988,11 @@ public final class ModelRendererTurboBatch {
 	 * leak into trucks, body parts, or the next model.</p>
 	 */
 	private static void renderGroup(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, int cacheBatchIndex) {
-		List<Entry> groupEntries = new ArrayList<Entry>();
-		for (Entry entry : entries) {
-			if (entry.group == group) {
-				groupEntries.add(entry);
-			}
-		}
+		renderGroup(context, entries, group, cacheOwnerId, cacheBatchIndex, false);
+	}
+
+	private static void renderGroup(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, int cacheBatchIndex, boolean sharedGeometrySignature) {
+		List<Entry> groupEntries = entriesForGroup(entries, group);
 		if (groupEntries.isEmpty()) {
 			return;
 		}
@@ -677,7 +1003,7 @@ public final class ModelRendererTurboBatch {
 			Minecraft.getMinecraft().entityRenderer.disableLightmap(1D);
 		}
 		try {
-			callCompiledBatch(context, groupEntries, group, cacheOwnerId, cacheBatchIndex);
+			callCompiledBatch(context, groupEntries, group, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature);
 		}
 		finally {
 			if (group == RenderGroup.CULL) {
@@ -687,6 +1013,40 @@ public final class ModelRendererTurboBatch {
 				Minecraft.getMinecraft().entityRenderer.enableLightmap(1D);
 			}
 		}
+	}
+
+	private static void renderDetailLayoutGroup(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, List<DetailPlacement> placements) {
+		List<Entry> groupEntries = entriesForGroup(entries, group);
+		if (groupEntries.isEmpty()) {
+			return;
+		}
+		if (group == RenderGroup.CULL) {
+			GL11.glDisable(GL11.GL_CULL_FACE);
+		}
+		else if (isFullbright(context, group)) {
+			Minecraft.getMinecraft().entityRenderer.disableLightmap(1D);
+		}
+		try {
+			callDetailLayout(context, groupEntries, group, cacheOwnerId, placements);
+		}
+		finally {
+			if (group == RenderGroup.CULL) {
+				GL11.glEnable(GL11.GL_CULL_FACE);
+			}
+			else if (isFullbright(context, group)) {
+				Minecraft.getMinecraft().entityRenderer.enableLightmap(1D);
+			}
+		}
+	}
+
+	private static List<Entry> entriesForGroup(List<Entry> entries, RenderGroup group) {
+		List<Entry> groupEntries = new ArrayList<Entry>();
+		for (Entry entry : entries) {
+			if (entry.group == group) {
+				groupEntries.add(entry);
+			}
+		}
+		return groupEntries;
 	}
 
 	/**
@@ -736,13 +1096,23 @@ public final class ModelRendererTurboBatch {
 	 * too, otherwise an old display list could be reused by mistake.</p>
 	 */
 	private static void callCompiledBatch(Context context, List<Entry> entries, RenderGroup group) {
-		callCompiledBatch(context, entries, group, System.identityHashCode(context.owner), context.flushIndex);
+		callCompiledBatch(context, entries, group, System.identityHashCode(context.owner), context.flushIndex, false);
 	}
 
 	private static void callCompiledBatch(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, int cacheBatchIndex) {
+		callCompiledBatch(context, entries, group, cacheOwnerId, cacheBatchIndex, false);
+	}
+
+	private static void callCompiledBatch(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, int cacheBatchIndex, boolean sharedGeometrySignature) {
+		GL11.glCallList(getCompiledBatch(context, entries, group, cacheOwnerId, cacheBatchIndex, sharedGeometrySignature).displayList);
+	}
+
+	private static CompiledBatch getCompiledBatch(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, int cacheBatchIndex, boolean sharedGeometrySignature) {
 		BatchKey key = new BatchKey(cacheOwnerId, cacheBatchIndex, group);
-		long signature = signature(entries);
+		long signature = sharedGeometrySignature ? sharedGeometrySignature(entries) : signature(entries);
 		CompiledBatch batch = CACHE.get(key);
+		boolean hit = batch != null && batch.signature == signature;
+		boolean stale = batch != null && batch.signature != signature;
 		if (batch == null || batch.signature != signature) {
 			if (batch != null) {
 				GL11.glDeleteLists(batch.displayList, 1);
@@ -750,7 +1120,32 @@ public final class ModelRendererTurboBatch {
 			batch = compile(entries, signature);
 			CACHE.put(key, batch);
 		}
-		GL11.glCallList(batch.displayList);
+		RenderResourceProfiler.recordBatchCache(hit, stale, entries.size());
+		return batch;
+	}
+
+	private static void callDetailLayout(Context context, List<Entry> entries, RenderGroup group, int cacheOwnerId, List<DetailPlacement> placements) {
+		/*
+		 * Detail layout batching uses two levels of display lists. The inner list
+		 * stores the reusable local FVTM geometry, including part-local transforms
+		 * and texcoords. The outer list stores the repeated detail-placement
+		 * transforms and calls the inner list once per placement. That lets
+		 * front/rear bogies share geometry without baking either bogie position
+		 * into the geometry cache.
+		 */
+		CompiledBatch geometry = getCompiledBatch(context, entries, group, cacheOwnerId, FVTM_RUNTIME_BATCH_INDEX, true);
+		long placementSignature = placementSignature(placements);
+		long signature = 31L * sharedGeometrySignature(entries) + placementSignature;
+		DetailLayoutKey key = new DetailLayoutKey(cacheOwnerId, group, placementSignature);
+		CompiledBatch layout = DETAIL_LAYOUT_CACHE.get(key);
+		if (layout == null || layout.signature != signature) {
+			if (layout != null) {
+				GL11.glDeleteLists(layout.displayList, 1);
+			}
+			layout = compileDetailLayout(geometry.displayList, placements, signature);
+			DETAIL_LAYOUT_CACHE.put(key, layout);
+		}
+		GL11.glCallList(layout.displayList);
 	}
 
 	/**
@@ -768,6 +1163,19 @@ public final class ModelRendererTurboBatch {
 		compileMode(entries, GL11.GL_TRIANGLES);
 		for (Entry entry : entries) {
 			entry.turbo.renderBatchGeometryRemainder(entry.scale, entry.rotorder);
+		}
+		GL11.glEndList();
+		return new CompiledBatch(displayList, signature);
+	}
+
+	private static CompiledBatch compileDetailLayout(int geometryDisplayList, List<DetailPlacement> placements, long signature) {
+		int displayList = GLAllocation.generateDisplayLists(1);
+		GL11.glNewList(displayList, GL11.GL_COMPILE);
+		for (DetailPlacement placement : placements) {
+			GL11.glPushMatrix();
+			placement.apply();
+			GL11.glCallList(geometryDisplayList);
+			GL11.glPopMatrix();
 		}
 		GL11.glEndList();
 		return new CompiledBatch(displayList, signature);
@@ -813,6 +1221,51 @@ public final class ModelRendererTurboBatch {
 		return result;
 	}
 
+	private static long sharedGeometrySignature(List<Entry> entries) {
+		/*
+		 * Shared submodel caches are keyed by the submodel's shape, not by the
+		 * parent rolling stock that happens to be drawing it. Unlike signature(),
+		 * this deliberately omits each ModelRendererTurbo object's identity, but
+		 * still includes the local geometry/transform hash, scale, render order,
+		 * and render group. That lets the same FVTM/BOB or generated bogie
+		 * geometry be reused across repeated placements and, when safe, across
+		 * stock that share the same submodel.
+		 */
+		long result = 1469598103934665603L;
+		for (Entry entry : entries) {
+			result = 31L * result + Float.floatToIntBits(entry.scale);
+			result = 31L * result + (entry.rotorder ? 1 : 0);
+			result = 31L * result + entry.group.ordinal();
+			result = 31L * result + entry.turbo.batchTransformHash();
+		}
+		return result;
+	}
+
+	private static long placementSignature(List<DetailPlacement> placements) {
+		long result = 1099511628211L;
+		for (DetailPlacement placement : placements) {
+			result = 31L * result + placement.signature();
+		}
+		return result;
+	}
+
+	private static int sharedSubmodelOwnerId(Object owner) {
+		/*
+		 * Runtime/nested caches need stable owner ids that describe the reusable
+		 * local model, not the parent train instance. FVTM/BOB models prefer their
+		 * resource name when one exists; generated Java submodels fall back to
+		 * class name so separate instances of the same bogie class can share the
+		 * compiled local geometry.
+		 */
+		if (owner instanceof FVTMFormatBase) {
+			FVTMFormatBase model = (FVTMFormatBase)owner;
+			if (model.name != null && !model.name.isEmpty()) {
+				return ("fvtm:" + model.name).hashCode();
+			}
+		}
+		return owner == null ? 0 : ("class:" + owner.getClass().getName()).hashCode();
+	}
+
 	/**
 	 * Buckets for parts that need different temporary draw state.
 	*
@@ -844,7 +1297,9 @@ public final class ModelRendererTurboBatch {
 	 * parts were already drawn by the body prebatch and must be skipped when the generated
 	 * model reaches them later. Suppress-only mode means "only skip already-drawn body parts;
 	 * do not collect anything new." That keeps unknown/custom model sections on the old safe
-	 * path.</p>
+	 * path. {@code scopedSuppressed} is shorter-lived: it only skips the remaining parts of
+	 * one nested submodel pass, then is cleared so the same submodel object can be drawn again
+	 * at another placement.</p>
 	 */
 	private static final class Context {
 		private final Object owner;
@@ -853,8 +1308,10 @@ public final class ModelRendererTurboBatch {
 		private boolean suppressOnly;
 		private boolean captureEnabled;
 		private boolean flushing;
+		private Object scopedSuppressionOwner;
 		private List<Entry> entries = new ArrayList<Entry>();
 		private final Set<ModelRendererTurbo> suppressed = Collections.newSetFromMap(new IdentityHashMap<ModelRendererTurbo, Boolean>());
+		private final Set<ModelRendererTurbo> scopedSuppressed = Collections.newSetFromMap(new IdentityHashMap<ModelRendererTurbo, Boolean>());
 
 		private Context(Object owner, Entity entity) {
 			this.owner = owner;
@@ -883,6 +1340,67 @@ public final class ModelRendererTurboBatch {
 		private final List<ModelRendererTurbo> rotary = new ArrayList<ModelRendererTurbo>();
 	}
 
+	public static final class DetailPlacement {
+		/*
+		 * One placement of a repeated BOB/FVTM detail model. These values are kept
+		 * outside the geometry display list so the same cached shape can be drawn
+		 * multiple times at different positions or rotations. The apply() order
+		 * mirrors the old BOB detail renderer: translate, scale, then X/Y/Z rotate.
+		 */
+		private final float translateX;
+		private final float translateY;
+		private final float translateZ;
+		private final float scaleX;
+		private final float scaleY;
+		private final float scaleZ;
+		private final float rotateX;
+		private final float rotateY;
+		private final float rotateZ;
+
+		public DetailPlacement(Vec3f position, Vec3f scale, Vec3f rotation) {
+			this.translateX = position == null ? 0F : position.xCoord;
+			this.translateY = position == null ? 0F : position.yCoord;
+			this.translateZ = position == null ? 0F : position.zCoord;
+			this.scaleX = scale == null ? 1F : scale.xCoord;
+			this.scaleY = scale == null ? 1F : scale.yCoord;
+			this.scaleZ = scale == null ? 1F : scale.zCoord;
+			this.rotateX = rotation == null ? 0F : rotation.xCoord;
+			this.rotateY = rotation == null ? 0F : rotation.yCoord;
+			this.rotateZ = rotation == null ? 0F : rotation.zCoord;
+		}
+
+		private void apply() {
+			if (translateX != 0F || translateY != 0F || translateZ != 0F) {
+				GL11.glTranslatef(translateX, translateY, translateZ);
+			}
+			if (scaleX != 1F || scaleY != 1F || scaleZ != 1F) {
+				GL11.glScalef(scaleX, scaleY, scaleZ);
+			}
+			if (rotateX != 0F) {
+				GL11.glRotatef(rotateX, 1F, 0F, 0F);
+			}
+			if (rotateY != 0F) {
+				GL11.glRotatef(rotateY, 0F, 1F, 0F);
+			}
+			if (rotateZ != 0F) {
+				GL11.glRotatef(rotateZ, 0F, 0F, 1F);
+			}
+		}
+
+		private long signature() {
+			long result = Float.floatToIntBits(translateX);
+			result = 31L * result + Float.floatToIntBits(translateY);
+			result = 31L * result + Float.floatToIntBits(translateZ);
+			result = 31L * result + Float.floatToIntBits(scaleX);
+			result = 31L * result + Float.floatToIntBits(scaleY);
+			result = 31L * result + Float.floatToIntBits(scaleZ);
+			result = 31L * result + Float.floatToIntBits(rotateX);
+			result = 31L * result + Float.floatToIntBits(rotateY);
+			result = 31L * result + Float.floatToIntBits(rotateZ);
+			return result;
+		}
+	}
+
 	static final class Entry {
 		final ModelRendererTurbo turbo;
 		final float scale;
@@ -894,6 +1412,38 @@ public final class ModelRendererTurboBatch {
 			this.scale = scale;
 			this.rotorder = rotorder;
 			this.group = group;
+		}
+	}
+
+	private static final class DetailLayoutKey {
+		private final int ownerId;
+		private final RenderGroup group;
+		private final long placementSignature;
+
+		private DetailLayoutKey(int ownerId, RenderGroup group, long placementSignature) {
+			this.ownerId = ownerId;
+			this.group = group;
+			this.placementSignature = placementSignature;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (!(obj instanceof DetailLayoutKey)) {
+				return false;
+			}
+			DetailLayoutKey other = (DetailLayoutKey)obj;
+			return ownerId == other.ownerId && group == other.group && placementSignature == other.placementSignature;
+		}
+
+		@Override
+		public int hashCode() {
+			int result = ownerId;
+			result = 31 * result + group.hashCode();
+			result = 31 * result + (int)(placementSignature ^ placementSignature >>> 32);
+			return result;
 		}
 	}
 
