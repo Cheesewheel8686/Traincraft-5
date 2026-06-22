@@ -167,6 +167,26 @@ public enum EnumCoreTrack
         this.railType = railType;
     }
 
+    public boolean isOriented90DegreeTurn()
+    {
+        return TCRailTypes.RailTypes.TURN.equals(railType) && isLeftRightCore();
+    }
+
+    public boolean isRight90DegreeTurn()
+    {
+        return TCRailTypes.RailTypes.TURN.equals(railType) && name().endsWith("_R");
+    }
+
+    public boolean isLeftRightCore()
+    {
+        return name().endsWith("_L") || name().endsWith("_R");
+    }
+
+    public EnumCoreTrack getLeftRightVariant(boolean renderLeft)
+    {
+        return EnumCoreTrack.valueOf(name() + (renderLeft ? "_L" : "_R"));
+    }
+
     public boolean isCoreTrackValidForRollingStockPlaceable()
     {
         switch (this)

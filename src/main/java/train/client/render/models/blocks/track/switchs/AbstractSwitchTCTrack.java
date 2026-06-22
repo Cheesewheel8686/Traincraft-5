@@ -1,48 +1,51 @@
 package train.client.render.models.blocks.track.switchs;
 
-import net.minecraftforge.client.model.IModelCustom;
 import org.lwjgl.opengl.GL11;
 import train.client.render.models.blocks.track.AbstractTrackModel;
 
 public abstract class AbstractSwitchTCTrack extends AbstractTrackModel
 {
-    protected IModelCustom modelMediumSwitchActive;
     protected int listMediumSwitchActive = -1;
-    protected IModelCustom modelMediumSwitchInactive;
     protected int listMediumSwitchInactive = -1;
-    protected IModelCustom modelMediumParallelSwitchInactive;
     protected int listMediumParallelSwitchInactive = -1;
-    protected IModelCustom modelMediumParallelSwitchActive;
     protected int listMediumParallelSwitchActive = -1;
 
-    protected IModelCustom modelLargeParallelSwitchInactive;
     protected int listLargeParallelSwitchInactive = -1;
-    protected IModelCustom modelLargeParallelSwitchActive;
     protected int listLargeParallelSwitchActive = -1;
-    protected IModelCustom modelLargeSwitchActive;
     protected int listLargeSwitchActive = -1;
-    protected IModelCustom modelLargeSwitchInactive;
     protected int listLargeSwitchInactive = -1;
 
-    protected IModelCustom modelVeryLargeSwitchActive;
     protected int listVeryLargeSwitchActive = -1;
-    protected IModelCustom modelVeryLargeSwitchInactive;
     protected int listVeryLargeSwitchInactive = -1;
 
-    protected IModelCustom modelMedium45degreeSwitchActive;
     protected int listMedium45degreeSwitchActive = -1;
-    protected IModelCustom modelMedium45degreeSwitchInActive;
     protected int listMedium45degreeSwitchInActive = -1;
 
-    protected IModelCustom modelLarge45degreeSwitchActive;
     protected int listLarge45degreeSwitchActive = -1;
-    protected IModelCustom modelLarge45degreeSwitchInActive;
     protected int listLarge45degreeSwitchInActive = -1;
 
-    protected IModelCustom modelCrossover10x2SwitchActive;
     protected int listCrossover10x2SwitchActive = -1;
-    protected IModelCustom modelCrossover10x2SwitchInactive;
     protected int listCrossover10x2SwitchInactive = -1;
+
+    protected final void bake(String rotation)
+    {
+        listMediumSwitchActive = getDisplayList("track/switch/active/4x4_" + rotation + ".obj");
+        listMediumSwitchInactive = getDisplayList("track/switch/inactive/4x4_" + rotation + ".obj");
+        listMediumParallelSwitchActive = getDisplayList("track/switch/active/4x11_" + rotation + ".obj");
+        listMediumParallelSwitchInactive = getDisplayList("track/switch/inactive/4x11_" + rotation + ".obj");
+        listLargeParallelSwitchActive = getDisplayList("track/switch/active/4x17_" + rotation + ".obj");
+        listLargeParallelSwitchInactive = getDisplayList("track/switch/inactive/4x17_" + rotation + ".obj");
+        listLargeSwitchActive = getDisplayList("track/switch/active/6x6_" + rotation + ".obj");
+        listLargeSwitchInactive = getDisplayList("track/switch/inactive/6x6_" + rotation + ".obj");
+        listMedium45degreeSwitchActive = getDisplayList("track/switch/active/3x5_" + rotation + ".obj");
+        listMedium45degreeSwitchInActive = getDisplayList("track/switch/inactive/3x5_" + rotation + ".obj");
+        listLarge45degreeSwitchActive = getDisplayList("track/switch/active/4x8_" + rotation + ".obj");
+        listLarge45degreeSwitchInActive = getDisplayList("track/switch/inactive/4x8_" + rotation + ".obj");
+        listVeryLargeSwitchActive = getDisplayList("track/switch/active/11x11_" + rotation + ".obj");
+        listVeryLargeSwitchInactive = getDisplayList("track/switch/inactive/11x11_" + rotation + ".obj");
+        listCrossover10x2SwitchActive = getDisplayList("track/switch/active/crossover_10x2_" + rotation + ".obj");
+        listCrossover10x2SwitchInactive = getDisplayList("track/switch/inactive/crossover_10x2_" + rotation + ".obj");
+    }
     
    public final void renderMediumActive()
     {

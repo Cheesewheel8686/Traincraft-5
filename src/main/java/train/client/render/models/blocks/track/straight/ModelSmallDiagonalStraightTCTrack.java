@@ -2,36 +2,19 @@ package train.client.render.models.blocks.track.straight;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.model.AdvancedModelLoader;
-import net.minecraftforge.client.model.IModelCustom;
 import org.lwjgl.opengl.GL11;
 import train.client.render.models.blocks.track.AbstractTrackModel;
 import train.common.items.RailVariants;
-import train.common.library.Info;
-import train.common.tile.TileTCRail;
 
 @SideOnly(Side.CLIENT)
 public class ModelSmallDiagonalStraightTCTrack extends AbstractTrackModel
 {
 
-    private IModelCustom modelSmallDiagonalStraight;
     private static int listSmallDiagonalStraight = -1;
 
     public ModelSmallDiagonalStraightTCTrack()
     {
-        if (!baked)
-        {
-            modelSmallDiagonalStraight = AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/straight/1x1_diagonal.obj"));
-
-            listSmallDiagonalStraight = GL11.glGenLists(1);
-            GL11.glNewList(listSmallDiagonalStraight, GL11.GL_COMPILE);
-            modelSmallDiagonalStraight.renderAll();
-            GL11.glEndList();
-
-            baked = true;
-        }
-
+        listSmallDiagonalStraight = getDisplayList("track/straight/1x1_diagonal.obj");
     }
 
     private void render()
@@ -39,11 +22,7 @@ public class ModelSmallDiagonalStraightTCTrack extends AbstractTrackModel
         GL11.glCallList(listSmallDiagonalStraight);
     }
 
-    public void render(String type, TileTCRail tcRail, double x, double y, double z) {
-        render( type, tcRail.getTrackType().getVariant(), getRailDirection(tcRail), x, y, z, 1, 1, 1, 1 );
-    }
-
-    public void render(String type, RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a )
+    public void renderDiagonal(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a)
     {
         // Bind the texture, so that OpenGL properly textures our block.
         tmt.Tessellator.bindTexture(train.common.enums.TrackResourceLocations.GetResourceLocation(variants));

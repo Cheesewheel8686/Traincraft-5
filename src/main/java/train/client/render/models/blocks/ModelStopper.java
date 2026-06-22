@@ -78,42 +78,42 @@ public class ModelStopper extends ModelBase
 		switch (facing)
 		{
 			case 0:
-				RenderTCRail.modelSmallStraight.render(enumTrack, "", 1, -0.5, 0, -0.5, 1, 1, 1, 1);
+				RenderTCRail.modelSmallStraight.renderStraight(enumTrack, 1, -0.5, 0, -0.5, 1, 1, 1, 1);
 				GL11.glPushMatrix();
 				GL11.glRotatef(0.0F, 0.0F, 1.0F, 0.0F);
 				break;
 			case 7:
-				RenderTCRail.modelSmallDiagonalStraight.render("", enumTrack.getVariant(), facing, -0.5, 0, -0.5, 1, 1, 1, 1);
+				RenderTCRail.modelSmallDiagonalStraight.renderDiagonal(enumTrack.getVariant(), facing, -0.5, 0, -0.5, 1, 1, 1, 1);
 				GL11.glPushMatrix();
 				GL11.glRotatef(-225, 0 , 1, 0);
 				break;
 			case 1:
-				RenderTCRail.modelSmallStraight.render(enumTrack, "", 2, -0.5, 0, -0.5, 1, 1, 1, 1);
+				RenderTCRail.modelSmallStraight.renderStraight(enumTrack, 2, -0.5, 0, -0.5, 1, 1, 1, 1);
 				GL11.glPushMatrix();
 				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
 				break;
 			case 4:
-				RenderTCRail.modelSmallDiagonalStraight.render("", enumTrack.getVariant(), facing, -0.5, 0, -0.5, 1, 1, 1, 1);
+				RenderTCRail.modelSmallDiagonalStraight.renderDiagonal(enumTrack.getVariant(), facing, -0.5, 0, -0.5, 1, 1, 1, 1);
 				GL11.glPushMatrix();
 				GL11.glRotatef(45, 0 , 1, 0);
 				break;
 			case 2:
-				RenderTCRail.modelSmallStraight.render(enumTrack, "", 1, -0.5, 0, -0.5, 1, 1, 1, 1);
+				RenderTCRail.modelSmallStraight.renderStraight(enumTrack, 1, -0.5, 0, -0.5, 1, 1, 1, 1);
 				GL11.glPushMatrix();
 				GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F);
 				break;
 			case 3:
-				RenderTCRail.modelSmallStraight.render(enumTrack, "", 2, -0.5, 0, -0.5, 1, 1, 1, 1);
+				RenderTCRail.modelSmallStraight.renderStraight(enumTrack, 2, -0.5, 0, -0.5, 1, 1, 1, 1);
 				GL11.glPushMatrix();
 				GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
 				break;
 			case 6:
-				RenderTCRail.modelSmallDiagonalStraight.render("", enumTrack.getVariant(), facing, -0.5, 0, -0.5, 1, 1, 1, 1);
+				RenderTCRail.modelSmallDiagonalStraight.renderDiagonal(enumTrack.getVariant(), facing, -0.5, 0, -0.5, 1, 1, 1, 1);
 				GL11.glPushMatrix();
 				GL11.glRotatef(225, 0 , 1, 0);
 				break;
 			case 5:
-				RenderTCRail.modelSmallDiagonalStraight.render("", enumTrack.getVariant(), facing, -0.5, 0, -0.5, 1, 1, 1, 1);
+				RenderTCRail.modelSmallDiagonalStraight.renderDiagonal(enumTrack.getVariant(), facing, -0.5, 0, -0.5, 1, 1, 1, 1);
 				GL11.glPushMatrix();
 				GL11.glRotatef(-45F, 0.0F, 1.0F, 0.0F);
 				break;
@@ -139,7 +139,7 @@ public class ModelStopper extends ModelBase
 
 	public void render2(float f5, int facing, EnumTracks enumTrack)
 	{
-		RenderTCRail.modelSmallStraight.render(enumTrack, "", 1, -0.5, 0, -0.5, 1, 1, 1, 1);
+		RenderTCRail.modelSmallStraight.renderStraight(enumTrack, 1, -0.5, 0, -0.5, 1, 1, 1, 1);
 
 		tmt.Tessellator.bindTexture(texture);
 		box.render(f5);

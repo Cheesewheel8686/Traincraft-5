@@ -1,11 +1,8 @@
 package train.client.render.models.blocks.track.crossing;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.model.AdvancedModelLoader;
 import org.lwjgl.opengl.GL11;
 import train.common.items.RailVariants;
-import train.common.library.Info;
 import train.common.tile.TileTCRail;
 
 @SideOnly(Side.CLIENT)
@@ -13,16 +10,7 @@ public class ModelRightDiamondCrossing extends AbstractDiamondCrossing
 {
     public ModelRightDiamondCrossing()
     {
-        if (!baked)
-        {
-            modelDiamondCrossing = AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/crossing/diamond_right.obj"));
-            listDiamondCrossing = GL11.glGenLists(1);
-            GL11.glNewList(listDiamondCrossing, GL11.GL_COMPILE);
-            modelDiamondCrossing.renderAll();
-            GL11.glEndList();
-
-            baked = true;
-        }
+        listDiamondCrossing = getDisplayList("track/crossing/diamond_right.obj");
     }
 
     public void render(TileTCRail tcRail, double x, double y, double z)

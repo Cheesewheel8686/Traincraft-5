@@ -5,8 +5,6 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 import org.lwjgl.opengl.GL11;
 import train.common.items.RailVariants;
-import train.common.library.track.EnumCoreTrack;
-import train.common.tile.TileTCRail;
 
 @SideOnly(Side.CLIENT)
 public class ModelRightTurnTCTrack extends AbstractBase90DegreeTurnTCTrack
@@ -35,11 +33,7 @@ public class ModelRightTurnTCTrack extends AbstractBase90DegreeTurnTCTrack
 		}
 	}
 
-	public void render(String type, TileTCRail tcRail, double x, double y, double z) {
-		render(tcRail.getTrackType().getCoreTrack(), type, tcRail.getTrackType().getVariant(), getRailDirection(tcRail), x, y, z, 1, 1, 1, 1);
-	}
-
-	public void render(EnumCoreTrack coreTrack, String type, RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
+	private void beginRender(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
 		// Push a blank matrix onto the stack
 		GL11.glPushMatrix();
 
@@ -53,40 +47,54 @@ public class ModelRightTurnTCTrack extends AbstractBase90DegreeTurnTCTrack
 		//GL11.glScalef(0.5f, 0.5f, 0.5f);
 
 		setRotation((byte)facing);
+	}
 
-		switch (coreTrack)
-		{
-			case CORE_1X_TURN_R:
-				GL11.glTranslatef(-0.5f,0,0.5f);
-				render1X();
-				break;
-			case CORE_3X_TURN_R:
-				GL11.glTranslatef(-1.0f, 0.0f, 3.0f);
-				this.renderMedium();
-				break;
-			case CORE_5X_TURN_R:
-				GL11.glTranslatef(3.5f, 0.0f, 4.5f);
-				this.renderLarge();
-				break;
-			case CORE_10X_TURN_R:
-				GL11.glTranslatef(8.5f, 0.0f, 9.50f);
-				this.renderVeryLarge();
-				break;
-			case CORE_16X_TURN_R:
-				GL11.glTranslatef(14.5f, 0.0f, 15.5f);
-				this.renderSuperLarge();
-				break;
-			case CORE_29X_TURN_R:
-				GL11.glTranslatef(27.5f,0,28.5f);
-				render29X();
-				break;
-			case CORE_32X_TURN_R:
-				GL11.glTranslatef(30.5f,0,31.5f);
-				render32X();
-				break;
-		}
+	public void render1x(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
+		beginRender(variants, facing, x, y, z, r, g, b, a);
+		GL11.glTranslatef(-0.5f,0,0.5f);
+		render1X();
+		GL11.glPopMatrix();
+	}
 
-		// Pop this matrix from the stack.
+	public void render3x(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
+		beginRender(variants, facing, x, y, z, r, g, b, a);
+		GL11.glTranslatef(-1.0f, 0.0f, 3.0f);
+		this.renderMedium();
+		GL11.glPopMatrix();
+	}
+
+	public void render5x(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
+		beginRender(variants, facing, x, y, z, r, g, b, a);
+		GL11.glTranslatef(3.5f, 0.0f, 4.5f);
+		this.renderLarge();
+		GL11.glPopMatrix();
+	}
+
+	public void render10x(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
+		beginRender(variants, facing, x, y, z, r, g, b, a);
+		GL11.glTranslatef(8.5f, 0.0f, 9.50f);
+		this.renderVeryLarge();
+		GL11.glPopMatrix();
+	}
+
+	public void render16x(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
+		beginRender(variants, facing, x, y, z, r, g, b, a);
+		GL11.glTranslatef(14.5f, 0.0f, 15.5f);
+		this.renderSuperLarge();
+		GL11.glPopMatrix();
+	}
+
+	public void render29x(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
+		beginRender(variants, facing, x, y, z, r, g, b, a);
+		GL11.glTranslatef(27.5f,0,28.5f);
+		render29X();
+		GL11.glPopMatrix();
+	}
+
+	public void render32x(RailVariants variants, int facing, double x, double y, double z, float r, float g, float b, float a) {
+		beginRender(variants, facing, x, y, z, r, g, b, a);
+		GL11.glTranslatef(30.5f,0,31.5f);
+		render32X();
 		GL11.glPopMatrix();
 	}
 }

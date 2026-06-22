@@ -7,25 +7,21 @@ import net.minecraft.block.Block;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.ResourceLocation;
 
-import net.minecraftforge.client.model.AdvancedModelLoader;
-import net.minecraftforge.client.model.IModelCustom;
 import org.lwjgl.opengl.GL11;
 import train.client.render.models.blocks.track.AbstractTrackModel;
+import train.client.render.models.blocks.track.DynamicBallastTextureCache;
 import train.common.items.RailVariants;
-import train.common.library.track.EnumTracks;
 import train.common.library.Info;
 import train.common.library.track.ITrackDefinition;
 import train.common.tile.TileTCRail;
 
 @SideOnly(Side.CLIENT)
 public class ModelSmallStraightTCTrack extends AbstractTrackModel {
-	
-	private IModelCustom modelSmallStraight;
-	private IModelCustom modelRoadCrossing;
 
-	private IModelCustom modelRoadCrossingDynamic;
-
-	protected String[] ballastTexture = new String[2];
+	private static final ResourceLocation ROAD_CROSSING_TEXTURE = new ResourceLocation(Info.resourceLocation, Info.modelTexPrefix + "track_roadcrossing.png");
+	private static final ResourceLocation ROAD_CROSSING_1_TEXTURE = new ResourceLocation(Info.resourceLocation, Info.modelTexPrefix + "track_roadcrossing_1.png");
+	private static final ResourceLocation ROAD_CROSSING_2_TEXTURE = new ResourceLocation(Info.resourceLocation, Info.modelTexPrefix + "track_roadcrossing_2.png");
+	private static final ResourceLocation ROAD_CROSSING_BASE_TEXTURE = new ResourceLocation(Info.resourceLocation, Info.modelTexPrefix + "track_roadcrossing_base.png");
 
 	private static int listSmallStraight = -1;
 	private static int listRoadCrossing = -1;
@@ -33,28 +29,9 @@ public class ModelSmallStraightTCTrack extends AbstractTrackModel {
 
 	public ModelSmallStraightTCTrack()
 	{
-		if (!baked)
-		{
-			modelSmallStraight = net.minecraftforge.client.model.AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/straight/1x1.obj"));
-			listSmallStraight = GL11.glGenLists(1);
-			GL11.glNewList(listSmallStraight, GL11.GL_COMPILE);
-			modelSmallStraight.renderAll();
-			GL11.glEndList();
-
-			modelRoadCrossing = net.minecraftforge.client.model.AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/straight/1x1_crossing.obj"));
-			listRoadCrossing = GL11.glGenLists(1);
-			GL11.glNewList(listRoadCrossing, GL11.GL_COMPILE);
-			modelRoadCrossing.renderAll();
-			GL11.glEndList();
-
-			modelRoadCrossingDynamic = AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/straight/track_roadcrossing_dynamic.obj"));
-			listRoadCrossingDynamic = GL11.glGenLists(1);
-			GL11.glNewList(listRoadCrossingDynamic, GL11.GL_COMPILE);
-			modelRoadCrossingDynamic.renderAll();
-			GL11.glEndList();
-
-			baked = true;
-		}
+		listSmallStraight = getDisplayList("track/straight/1x1.obj");
+		listRoadCrossing = getDisplayList("track/straight/1x1_crossing.obj");
+		listRoadCrossingDynamic = getDisplayList("track/straight/track_roadcrossing_dynamic.obj");
 	}
 
 	private void setupRender(int facing, double x, double y, double z, float r, float g, float b, float a)
@@ -85,26 +62,14 @@ public class ModelSmallStraightTCTrack extends AbstractTrackModel {
 		GL11.glColor4f(r,g,b,1);
 	}
 
-	protected void SetupDynamicBallast(String ballast)
-	{
-		if (ballast.contains(":")) {
-			ballastTexture = ballast.split(":");
-			ballastTexture[0] = ballastTexture[0].toLowerCase();
-		}
-		else {
-			ballastTexture[0] = "minecraft";
-			ballastTexture[1] = ballast;
-		}
-	}
-
 	public void renderDynamic(RailVariants variants, String ballastTextureInput, int ballastColour)
 	{
-		tmt.Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, Info.modelTexPrefix + "track_roadcrossing_base.png"));
+		tmt.Tessellator.bindTexture(ROAD_CROSSING_BASE_TEXTURE);
 		GL11.glCallList(listRoadCrossing);
-		SetupDynamicBallast(ballastTextureInput);
-		tmt.Tessellator.bindTexture(new ResourceLocation(ballastTexture[0],  "textures/blocks/" + ballastTexture[1] +".png"));
+		tmt.Tessellator.bindTexture(DynamicBallastTextureCache.get(ballastTextureInput));
 		SetupDynamicBallastColour(ballastColour);
 		GL11.glCallList(listRoadCrossingDynamic);
+		GL11.glColor4f(1, 1, 1, 1);
 
 	}
 
@@ -121,6 +86,11 @@ public class ModelSmallStraightTCTrack extends AbstractTrackModel {
 
 	public void renderDynamic(TileTCRail tcRail, double x, double y, double z)
 	{
+		renderDynamic(tcRail.getTrackType().getVariant(), tcRail, getRailDirection(tcRail), x, y, z);
+	}
+
+	public void renderDynamic(RailVariants variants, TileTCRail tcRail, int facing, double x, double y, double z)
+	{
 		String iconName;
 		Block block = Block.getBlockById(tcRail.getBallastMaterial());
 		IIcon icon = block.getIcon(1, tcRail.ballastMetadata);
@@ -132,41 +102,37 @@ public class ModelSmallStraightTCTrack extends AbstractTrackModel {
 			iconName = "tc:ballast_test";
 			colour = 16777215;
 		}
-		renderDynamic( tcRail.getTrackType().getVariant(), getRailDirection(tcRail) , x, y, z, 1, 1, 1, 1, iconName, colour);
+		renderDynamic(variants, facing, x, y, z, 1, 1, 1, 1, iconName, colour);
 	}
 
-	public void render(String type, TileTCRail tcRail, double x, double y, double z)
-	{
-		render(tcRail.getTrackType(), type, getRailDirection(tcRail), x, y, z, 1, 1, 1, 1 );
-	}
-
-	public void render(ITrackDefinition enumTracks, String type, int facing, double x, double y, double z, float r, float g, float b, float a )
+	public void renderStraight(ITrackDefinition enumTracks, int facing, double x, double y, double z, float r, float g, float b, float a)
 	{
 		setupRender(facing, x, y, z, r, g, b, a);
+		tmt.Tessellator.bindTexture(train.common.enums.TrackResourceLocations.GetResourceLocation(enumTracks.getVariant()));
+		GL11.glCallList(listSmallStraight);
+		GL11.glPopMatrix();
+	}
 
-		// Bind the texture, so that OpenGL properly textures our block.
-		switch (type)
-		{
-			case "crossing":
-				FMLClientHandler.instance().getClient().renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation, Info.modelTexPrefix + "track_roadcrossing.png"));
-				GL11.glCallList(listRoadCrossing);
-			break;
-			case "crossing1":
-				FMLClientHandler.instance().getClient().renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation, Info.modelTexPrefix + "track_roadcrossing_1.png"));
-				GL11.glCallList(listRoadCrossing);
-			break;
-			case "crossing2":
-				FMLClientHandler.instance().getClient().renderEngine.bindTexture(new ResourceLocation(Info.resourceLocation, Info.modelTexPrefix + "track_roadcrossing_2.png"));
-				GL11.glCallList(listRoadCrossing);
-			break;
-			default:
-			{
-				tmt.Tessellator.bindTexture(train.common.enums.TrackResourceLocations.GetResourceLocation(enumTracks.getVariant()));
-				GL11.glCallList(listSmallStraight);
-			}
-		}
+	public void renderCrossing(int facing, double x, double y, double z, float r, float g, float b, float a)
+	{
+		renderFixedCrossing(ROAD_CROSSING_TEXTURE, facing, x, y, z, r, g, b, a);
+	}
 
-		// Pop this matrix from the stack.
+	public void renderCrossing1(int facing, double x, double y, double z, float r, float g, float b, float a)
+	{
+		renderFixedCrossing(ROAD_CROSSING_1_TEXTURE, facing, x, y, z, r, g, b, a);
+	}
+
+	public void renderCrossing2(int facing, double x, double y, double z, float r, float g, float b, float a)
+	{
+		renderFixedCrossing(ROAD_CROSSING_2_TEXTURE, facing, x, y, z, r, g, b, a);
+	}
+
+	private void renderFixedCrossing(ResourceLocation texture, int facing, double x, double y, double z, float r, float g, float b, float a)
+	{
+		setupRender(facing, x, y, z, r, g, b, a);
+		FMLClientHandler.instance().getClient().renderEngine.bindTexture(texture);
+		GL11.glCallList(listRoadCrossing);
 		GL11.glPopMatrix();
 	}
 }

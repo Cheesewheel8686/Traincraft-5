@@ -1,23 +1,26 @@
 package train.client.render.models.blocks.track.turn.degree45;
 
-import net.minecraftforge.client.model.IModelCustom;
 import org.lwjgl.opengl.GL11;
 import train.client.render.models.blocks.track.AbstractTrackModel;
 
 public abstract class AbstractBase45DegreeTurnTCTrack extends AbstractTrackModel
 {
-    protected IModelCustom model3x4_45DegreeTurn;
     protected int list3x4_45DegreeTurn = -1;
-    protected IModelCustom model3x6_45DegreeTurn;
     protected int list3x6_45DegreeTurn = -1;
-    protected IModelCustom model4x8_45DegreeTurn;
     protected int list4x8_45DegreeTurn = -1;
-    protected IModelCustom model5x11_45DegreeTurn;
     protected int list5x11_45DegreeTurn = -1;
-    protected IModelCustom model9x20_45DegreeTurn;
     protected int list9x20_45DegreeTurn = -1;
-    protected IModelCustom model10x22_45DegreeTurn;
     protected int list10x22_45DegreeTurn = -1;
+
+    protected final void bake(String rotation)
+    {
+        list3x4_45DegreeTurn = getDisplayList("track/curve/45-deg/3x4_" + rotation + ".obj");
+        list3x6_45DegreeTurn = getDisplayList("track/curve/45-deg/3x6_" + rotation + ".obj");
+        list4x8_45DegreeTurn = getDisplayList("track/curve/45-deg/4x8_" + rotation + ".obj");
+        list5x11_45DegreeTurn = getDisplayList("track/curve/45-deg/5x11_" + rotation + ".obj");
+        list9x20_45DegreeTurn = getDisplayList("track/curve/45-deg/9x20_" + rotation + ".obj");
+        list10x22_45DegreeTurn = getDisplayList("track/curve/45-deg/10x22_" + rotation + ".obj");
+    }
 
     public final void render3x4() { GL11.glCallList(list3x4_45DegreeTurn);}
     public final void render3x6() {GL11.glCallList(list3x6_45DegreeTurn);}

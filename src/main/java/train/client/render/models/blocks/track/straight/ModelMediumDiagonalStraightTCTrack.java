@@ -2,33 +2,19 @@ package train.client.render.models.blocks.track.straight;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.model.AdvancedModelLoader;
-import net.minecraftforge.client.model.IModelCustom;
 import org.lwjgl.opengl.GL11;
 import train.client.render.models.blocks.track.AbstractTrackModel;
-import train.common.library.Info;
+import train.common.items.RailVariants;
 import train.common.tile.TileTCRail;
 
 @SideOnly(Side.CLIENT)
 public class ModelMediumDiagonalStraightTCTrack extends AbstractTrackModel {
 
-    private IModelCustom modelMediumDiagonalStraight;
     private static int listMediumDiagonalStraight = -1;
 
     public ModelMediumDiagonalStraightTCTrack()
     {
-        if (!baked)
-        {
-            modelMediumDiagonalStraight = AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/straight/1x3_diagonal.obj"));
-
-            listMediumDiagonalStraight = GL11.glGenLists(1);
-            GL11.glNewList(listMediumDiagonalStraight, GL11.GL_COMPILE);
-            modelMediumDiagonalStraight.renderAll();
-            GL11.glEndList();
-
-            baked = true;
-        }
+        listMediumDiagonalStraight = getDisplayList("track/straight/1x3_diagonal.obj");
     }
 
     public void render() {
@@ -41,8 +27,13 @@ public class ModelMediumDiagonalStraightTCTrack extends AbstractTrackModel {
 
     public void render(TileTCRail tcRail, int facing, double x, double y, double z, float r, float g, float b, float a )
     {
+        render(tcRail.getTrackType().getVariant(), facing, x, y, z, r, g, b, a);
+    }
+
+    public void render(RailVariants variant, int facing, double x, double y, double z, float r, float g, float b, float a )
+    {
         // Bind the texture, so that OpenGL properly textures our block.
-        tmt.Tessellator.bindTexture(train.common.enums.TrackResourceLocations.GetResourceLocation(tcRail.getTrackType().getVariant()));
+        tmt.Tessellator.bindTexture(train.common.enums.TrackResourceLocations.GetResourceLocation(variant));
         // Push a blank matrix onto the stack
         GL11.glPushMatrix();
 

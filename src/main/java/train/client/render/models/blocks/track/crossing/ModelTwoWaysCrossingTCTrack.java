@@ -3,56 +3,47 @@ package train.client.render.models.blocks.track.crossing;
 import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.client.model.ModelBase;
-import net.minecraft.util.ResourceLocation;
 
-import net.minecraftforge.client.model.AdvancedModelLoader;
-import net.minecraftforge.client.model.IModelCustom;
 import org.lwjgl.opengl.GL11;
+import train.client.render.models.blocks.track.AbstractTrackModel;
 import train.common.items.RailVariants;
-import train.common.library.Info;
-import train.common.tile.TileTCRail;
 
 @SideOnly(Side.CLIENT)
-public class ModelTwoWaysCrossingTCTrack extends ModelBase {
-	private IModelCustom modelTwoWaysCrossing;
-	private IModelCustom modelDoubleDiamondCrossing;
-	private IModelCustom modelDiagonalTwoWaysCrossing;
-	private IModelCustom modelFourWaysCrossing;
+public class ModelTwoWaysCrossingTCTrack extends AbstractTrackModel {
+	private final int listTwoWaysCrossing;
+	private final int listDoubleDiamondCrossing;
+	private final int listDiagonalTwoWaysCrossing;
+	private final int listFourWaysCrossing;
 
 	public ModelTwoWaysCrossingTCTrack()
 	{
-		modelTwoWaysCrossing = net.minecraftforge.client.model.AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/crossing/standard.obj"));
-		modelDoubleDiamondCrossing = AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/crossing/double_diamond.obj"));
-		modelDiagonalTwoWaysCrossing = AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/crossing/45-deg_standard.obj"));
-		modelFourWaysCrossing = AdvancedModelLoader.loadModel(new ResourceLocation(Info.modelPrefix + "track/crossing/double_diamond_plus.obj"));
+		listTwoWaysCrossing = getDisplayList("track/crossing/standard.obj");
+		listDoubleDiamondCrossing = getDisplayList("track/crossing/double_diamond.obj");
+		listDiagonalTwoWaysCrossing = getDisplayList("track/crossing/45-deg_standard.obj");
+		listFourWaysCrossing = getDisplayList("track/crossing/double_diamond_plus.obj");
 	}
 
-	private void render(String crossingVariant)
+	public void renderTwoWays(int facing, RailVariants variants, double x, double y, double z, float r, float g, float b, float a)
 	{
-		switch (crossingVariant)
-		{
-			case "twoways_crossing":
-				modelTwoWaysCrossing.renderAll();
-				break;
-			case "diamond":
-				modelDoubleDiamondCrossing.renderAll();
-				break;
-			case "diagonal_crossing":
-				modelDiagonalTwoWaysCrossing.renderAll();
-				break;
-			case "universal_crossing":
-				modelFourWaysCrossing.renderAll();
-				break;
-		}
+		renderList(listTwoWaysCrossing, false, facing, variants, x, y, z, r, g, b, a);
 	}
 
-	public void render(String crossingVariant, TileTCRail tcRail, double x, double y, double z)
+	public void renderDoubleDiamond(int facing, RailVariants variants, double x, double y, double z, float r, float g, float b, float a)
 	{
-		render(crossingVariant, tcRail.getWorldObj().getBlockMetadata(tcRail.xCoord, tcRail.yCoord, tcRail.zCoord), tcRail.getTrackType().getVariant(), x, y, z, 1, 1, 1, 1);
+		renderList(listDoubleDiamondCrossing, true, facing, variants, x, y, z, r, g, b, a);
 	}
 
-	public void render(String crossingVariant, int facing, RailVariants variants, double x, double y, double z, float r, float g, float b, float a)
+	public void renderDiagonalTwoWays(int facing, RailVariants variants, double x, double y, double z, float r, float g, float b, float a)
+	{
+		renderList(listDiagonalTwoWaysCrossing, false, facing, variants, x, y, z, r, g, b, a);
+	}
+
+	public void renderFourWays(int facing, RailVariants variants, double x, double y, double z, float r, float g, float b, float a)
+	{
+		renderList(listFourWaysCrossing, false, facing, variants, x, y, z, r, g, b, a);
+	}
+
+	private void renderList(int list, boolean rotateDiamond, int facing, RailVariants variants, double x, double y, double z, float r, float g, float b, float a)
 	{
 		// Push a blank matrix onto the stack
 		GL11.glPushMatrix();
@@ -65,12 +56,12 @@ public class ModelTwoWaysCrossingTCTrack extends ModelBase {
 
 		GL11.glColor4f(r, g, b, a);
 		//GL11.glScalef(0.5f, 0.5f, 0.5f);
-		if (crossingVariant.equals("diamond") && (facing == 1 || facing == 3))
+		if (rotateDiamond && (facing == 1 || facing == 3))
 		{
 			GL11.glRotatef(90, 0, 1,0);
 		}
 
-		this.render(crossingVariant);
+		GL11.glCallList(list);
 		// Pop this matrix from the stack.
 		GL11.glPopMatrix();
 	}
