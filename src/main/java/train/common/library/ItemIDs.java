@@ -66,6 +66,7 @@ public enum ItemIDs {
 	recipeBook("ItemRecipeBook", "item_book_blue", 1),
 	//creditsBook("ItemRecipeBook", "item_book_brown", 1),
 	adminBook("ItemAdminBook", "item_book_blue"),
+	lockoutBook("ItemLockoutBook", "item_book_blue", 1),
 	trackDebugger("ItemTrackDebugger", "item_composite_wrench", 0),
 	wirelessTransmitter("ItemWirelessTransmitter", "wireless_transmitter", 3),
 	padlock("ItemPadlock", "padlock", 1),

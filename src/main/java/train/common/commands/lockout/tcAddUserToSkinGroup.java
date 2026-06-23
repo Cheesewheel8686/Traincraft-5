@@ -49,20 +49,15 @@ public class tcAddUserToSkinGroup extends CommandBase
 
         UUID userID = test.getUniqueID();
 
-        if (strings.length <= 1 || Traincraft.lockoutPermissionsUtil.isValidGroup(strings[1]) == false)
+        if (strings.length <= 1)
         {
             throw new WrongUsageException("Invalid Group", new Object[0]);
         }
 
-        if (sender.canCommandSenderUseCommand(2, "") || Traincraft.lockoutPermissionsUtil.GetGroupOwner(strings[1]).trim().equalsIgnoreCase(getPlayer(sender, sender.getCommandSenderName()).getUniqueID().toString().trim()))
-        {
-            Traincraft.lockoutPermissionsUtil.AddUserToGroup(test.getDisplayName(), userID.toString(), strings[1]);
-            sender.addChatMessage(new ChatComponentText("Lockout: Added User to group."));
-        }
-        else
-        {
-            throw new WrongUsageException("You are not the owner of this group.", new Object[0]);
-        }
+        boolean isAdmin = sender.canCommandSenderUseCommand(2, "");
+        UUID actorID = isAdmin ? null : getPlayer(sender, sender.getCommandSenderName()).getUniqueID();
+        Traincraft.lockoutPermissionsUtil.AddUserToGroupManaged(actorID, isAdmin, test.getDisplayName(), userID.toString(), strings[1]);
+        sender.addChatMessage(new ChatComponentText("Lockout: Added User to group."));
     }
 
     /**

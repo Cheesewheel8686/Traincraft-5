@@ -46,6 +46,7 @@ public class TCItems {
 		//ItemIDs.signal.item = new ItemSignal(ItemIDs.signal.itemID, BlockIDs.activeSignal.block).setIconIndex(ItemIDs.signal.iconIndex);
 		ItemIDs.chunkLoaderActivator.item = new ItemChunkLoaderActivator();
 		ItemIDs.recipeBook.item = new ItemRecipeBook();
+		ItemIDs.lockoutBook.item = new ItemLockoutBook();
 		ItemIDs.adminBook.item = new ItemAdminBook();
 		ItemIDs.trackDebugger.item = new ItemTrackDebugger();
 		//ItemIDs.creditsBook.item = new ItemCreditsBook();

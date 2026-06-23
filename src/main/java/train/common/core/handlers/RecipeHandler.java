@@ -414,6 +414,7 @@ public class RecipeHandler extends AbstractRecipeHandler
 		TrainCraftingManager.instance.addRecipe(new ItemStack(ItemIDs.recipeBook.item, 1),  "TTT", "TBT", "TTT", Character.valueOf('T'), Blocks.rail, Character.valueOf('B'), Items.book );
 
 		/* Chunk Loader Activator */
+		TrainCraftingManager.instance.addRecipe(new ItemStack(ItemIDs.lockoutBook.item, 1),  " R ", "GBG", " R ", Character.valueOf('R'), Items.redstone, Character.valueOf('G'), Items.gold_nugget, Character.valueOf('B'), Items.book );
 		TrainCraftingManager.instance.addRecipe(new ItemStack(ItemIDs.chunkLoaderActivator.item, 1),  "  P", " S ", "S  ", Character.valueOf('S'), Items.blaze_rod, Character.valueOf('P'), Items.ender_pearl );
 
 		/* Assembly tables */

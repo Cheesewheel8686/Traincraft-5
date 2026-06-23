@@ -401,6 +401,7 @@ item.tc:chunkLoaderActivator.name=Chunk Loader Activator
 item.tc:emptyCanister.name=Empty Canister
 item.tc:recipeBook.name=Traincraft guide
 item.tc:hat_ticketMan_paintable.name=Ticket Man's Hat (Paintable)
+item.tc:lockoutBook.name=Lockout Book
 item.tc:pants_ticketMan_paintable.name=Ticket Man's Pants (Paintable)
 item.tc:jacket_ticketMan_paintable.name=Ticket Man's Jacket (Paintable)
 item.tc:hat_driver_paintable.name=Driver's Hat (Paintable)

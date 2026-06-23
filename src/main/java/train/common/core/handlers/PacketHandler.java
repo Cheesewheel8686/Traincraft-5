@@ -33,6 +33,9 @@ import train.common.core.network.AdminBook.PacketAdminBookToggleChunkLoading;
 import train.common.core.network.ITCPacket.ITCPacket;
 import train.common.core.network.ITCPacket.PacketScrollingItemBlockSelect;
 import train.common.core.network.*;
+import train.common.core.network.lockout.PacketLockoutBookAction;
+import train.common.core.network.lockout.PacketLockoutBookData;
+import train.common.core.network.lockout.PacketLockoutBookRequest;
 import train.common.core.network.lockout.PacketLockoutAddUserToSkinGroup;
 import train.common.core.network.lockout.PacketPaintBrushClientSideUpdate;
 import train.common.library.Info;
@@ -133,6 +136,9 @@ public class PacketHandler
 		Traincraft.interchangeChannel.registerMessage(PacketClientSideEvent.Handler.class, PacketClientSideEvent.class, 25, Side.CLIENT);
 
 		Traincraft.lockoutCommChannel.registerMessage(PacketLockoutAddUserToSkinGroup.Handler.class, PacketLockoutAddUserToSkinGroup.class, 26, Side.SERVER);
+		Traincraft.lockoutCommChannel.registerMessage(PacketLockoutBookRequest.Handler.class, PacketLockoutBookRequest.class, 32, Side.SERVER);
+		Traincraft.lockoutCommChannel.registerMessage(PacketLockoutBookAction.Handler.class, PacketLockoutBookAction.class, 33, Side.SERVER);
+		Traincraft.lockoutCommChannel.registerMessage(PacketLockoutBookData.Handler.class, PacketLockoutBookData.class, 34, Side.CLIENT);
 
 		Traincraft.BannedItems_CHANNEL.registerMessage(PacketSyncBannedItems.Handler.class, PacketSyncBannedItems.class, 29, Side.CLIENT);
 		Traincraft.tcCraftingBenchChannel.registerMessage(PacketUpdateTCBenchPage.Handler.class, PacketUpdateTCBenchPage.class, 30, Side.SERVER);

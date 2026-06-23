@@ -57,9 +57,123 @@ public class LockoutPermissionsUtil
         return new ArrayList<String>(lockGroupsReg.keySet()).toArray(lockoutGroups);
     }
 
+    public ArrayList<String> GetGroupsOwnedBy(UUID uuid)
+    {
+        ArrayList<String> ownedGroups = new ArrayList<>();
+        String uuidString = uuid.toString().trim();
+        for (String group : lockGroupsReg.keySet())
+        {
+            if (GetGroupOwner(group).trim().equalsIgnoreCase(uuidString))
+            {
+                ownedGroups.add(group);
+            }
+        }
+        Collections.sort(ownedGroups);
+        return ownedGroups;
+    }
+
+    public ArrayList<KnownLockoutUser> GetKnownUsers()
+    {
+        HashMap<String, KnownLockoutUser> knownUsers = new HashMap<>();
+        File usersFolder = new File(LockoutFolder + File.separator + LockoutUsers);
+        File[] files = usersFolder.listFiles();
+        if (files != null)
+        {
+            for (File file : files)
+            {
+                if (file.isFile() && file.getName().toLowerCase().endsWith(".json"))
+                {
+                    try (FileReader fileReader = new FileReader(file))
+                    {
+                        JsonObject jsonObject = Traincraft.jsonParser.parse(fileReader).getAsJsonObject();
+                        String uuid = jsonObject.get("uuid").getAsString();
+                        String username = jsonObject.has("username") ? jsonObject.get("username").getAsString() : "";
+                        knownUsers.put(uuid.toLowerCase(), new KnownLockoutUser(uuid, username));
+                    }
+                    catch (Exception e)
+                    {
+                        Traincraft.tcLog.info(e.getMessage());
+                    }
+                }
+            }
+        }
+
+        ArrayList<KnownLockoutUser> users = new ArrayList<>(knownUsers.values());
+        Collections.sort(users, new Comparator<KnownLockoutUser>() {
+            @Override
+            public int compare(KnownLockoutUser o1, KnownLockoutUser o2) {
+                return o1.getDisplayName().compareToIgnoreCase(o2.getDisplayName());
+            }
+        });
+        return users;
+    }
+
     public boolean isValidGroup(String key)
     {
         return lockGroupsReg.get(key.toUpperCase()) != null;
+    }
+
+    public boolean CanManageGroup(UUID actorUuid, boolean isAdmin, String group)
+    {
+        if (isAdmin)
+        {
+            return true;
+        }
+
+        if (actorUuid == null || group == null || isValidGroup(group) == false)
+        {
+            return false;
+        }
+
+        return GetGroupOwner(group).trim().equalsIgnoreCase(actorUuid.toString().trim());
+    }
+
+    public void AddUserToGroupManaged(UUID actorUuid, boolean isAdmin, String targetName, String targetUuid, String group)
+    {
+        String normalizedGroup = ValidateManagedGroup(actorUuid, isAdmin, group);
+        String normalizedTargetUuid = ValidateManagedTargetUuid(targetUuid);
+        AddUserToGroup(targetName, normalizedTargetUuid, normalizedGroup);
+    }
+
+    public void RemoveUserFromGroupManaged(UUID actorUuid, boolean isAdmin, String targetName, String targetUuid, String group)
+    {
+        String normalizedGroup = ValidateManagedGroup(actorUuid, isAdmin, group);
+        String normalizedTargetUuid = ValidateManagedTargetUuid(targetUuid);
+        String owner = GetGroupOwner(normalizedGroup);
+        if (owner.trim().equalsIgnoreCase(normalizedTargetUuid))
+        {
+            throw new ProjectLockoutErrorException("The group owner cannot be removed from their lockout group.");
+        }
+
+        RemoveUserFromGroup(targetName, normalizedTargetUuid, normalizedGroup);
+    }
+
+    private String ValidateManagedGroup(UUID actorUuid, boolean isAdmin, String group)
+    {
+        String normalizedGroup = group == null ? "" : group.toUpperCase();
+        if (isValidGroup(normalizedGroup) == false)
+        {
+            throw new ProjectLockoutErrorException("Invalid lockout group.");
+        }
+
+        if (CanManageGroup(actorUuid, isAdmin, normalizedGroup) == false)
+        {
+            throw new ProjectLockoutErrorException("You do not own that lockout group.");
+        }
+
+        return normalizedGroup;
+    }
+
+    private String ValidateManagedTargetUuid(String targetUuid)
+    {
+        try
+        {
+            return UUID.fromString(targetUuid).toString();
+        }
+        catch (Exception e)
+        {
+            throw new ProjectLockoutErrorException("Invalid lockout user.");
+        }
     }
 
     public String GetGroupOwner(String key)
@@ -157,6 +271,7 @@ public class LockoutPermissionsUtil
 
     public void AddUserToGroup(String username, String uuid, String lockoutGroup)
     {
+        lockoutGroup = lockoutGroup.toUpperCase();
         File user = BuildUserFolderPath(uuid);
         if (user.exists() == false)
         {
@@ -234,7 +349,7 @@ public class LockoutPermissionsUtil
     {
         for (JsonElement element : groups)
         {
-            if (group.equals(element.getAsString()))
+            if (group.equalsIgnoreCase(element.getAsString()))
             {
                 return true;
             }
@@ -264,6 +379,7 @@ public class LockoutPermissionsUtil
 
     public void RemoveUserFromGroup(String username, String uuid, String lockoutGroup)
     {
+        lockoutGroup = lockoutGroup.toUpperCase();
         File user = BuildUserFolderPath(uuid);
         if (user.exists() == false)
         {
@@ -381,6 +497,23 @@ public class LockoutPermissionsUtil
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         gson.toJson(jsonObject, fileWriter);
         fileWriter.close();
+    }
+
+    public static class KnownLockoutUser
+    {
+        public final String uuid;
+        public final String username;
+
+        public KnownLockoutUser(String uuid, String username)
+        {
+            this.uuid = uuid;
+            this.username = username == null ? "" : username;
+        }
+
+        public String getDisplayName()
+        {
+            return username.trim().length() == 0 ? uuid : username;
+        }
     }
 }
 
