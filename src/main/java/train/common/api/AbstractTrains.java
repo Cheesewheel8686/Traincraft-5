@@ -41,6 +41,7 @@ import train.client.render.register.ITrainRenderRecord;
 import train.common.overlaytexture.OverlayTextureManager;
 import train.common.tile.TileTCRail;
 import train.common.tile.TileTCRailGag;
+import train.common.utils.TrainSaveLifecycleLogger;
 import train.common.utils.lockout.ILockoutGroup;
 
 import java.util.*;
@@ -611,6 +612,7 @@ public abstract class AbstractTrains extends EntityMinecart implements IMinecart
 
 	@Override
 	protected void writeEntityToNBT(NBTTagCompound nbttagcompound) {
+		TrainSaveLifecycleLogger.log("WRITE_ENTITY_NBT", this, "AbstractTrains.writeEntityToNBT");
 		//super.writeEntityToNBT(nbttagcompound);
 		nbttagcompound.setInteger("color", getColor());
 		nbttagcompound.setBoolean("chunkLoadingState", getFlag(7));
@@ -649,6 +651,7 @@ public abstract class AbstractTrains extends EntityMinecart implements IMinecart
 
 	@Override
 	protected void readEntityFromNBT(NBTTagCompound nbttagcompound) {
+		TrainSaveLifecycleLogger.log("READ_ENTITY_NBT", this, "AbstractTrains.readEntityFromNBT");
 		//super.readEntityFromNBT(nbttagcompound);
 		setColor(nbttagcompound.getInteger("color"));
 		setFlag(7, nbttagcompound.getBoolean("chunkLoadingState"));
@@ -696,11 +699,14 @@ public abstract class AbstractTrains extends EntityMinecart implements IMinecart
 	}
 	@Override
 	public boolean writeToNBTOptional(NBTTagCompound p_70039_1_) {
-		if (!this.isDead && this.getEntityString() != null) {
-			p_70039_1_.setString("id", this.getEntityString());
+		String entityString = this.getEntityString();
+		if (!this.isDead && entityString != null) {
+			p_70039_1_.setString("id", entityString);
 			this.writeToNBT(p_70039_1_);
+			TrainSaveLifecycleLogger.logSavedEntityNbt("WRITE_OPTIONAL_SAVE", this, entityString, p_70039_1_, "saving entity");
 			return true;
 		}
+		TrainSaveLifecycleLogger.log("WRITE_OPTIONAL_SKIP", this, entityString, "isDead=" + this.isDead + " entityString=" + entityString);
 		return false;
 	}
 
