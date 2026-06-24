@@ -41,6 +41,7 @@ public class ConfigHandler {
 	public static boolean DISABLE_TRAIN_WORKBENCH;
 	public static boolean ENABLE_WAGON_REMOVAL_NOTICES;
 	public static boolean ENABLE_LOGGING;
+	public static boolean ENABLE_TRAIN_SAVE_LIFECYCLE_LOGGING;
 	public static boolean FIRST_RUN;
 	public static boolean ALLOW_ATO_ON_STEAMERS;
 	public static boolean ENABLE_TILT_HANDLER;
