@@ -457,54 +457,116 @@ public class EntityRollingStock extends AbstractTrains implements ILinkableCart
 	public boolean attackEntityFrom(DamageSource damagesource, float i)
 	{
 		if (worldObj.isRemote || isDead) { return true; }
-		if (damagesource.getEntity() instanceof EntityPlayer && !damagesource.isProjectile())
+		if (damagesource != null && damagesource.getEntity() instanceof EntityPlayer && damagesource.isProjectile() == false)
 		{
-			if (canBeDestroyedByPlayer(damagesource))
+			if (canRollingStockBeRemovedBy(damagesource, i, "EntityRollingStock.attackEntityFrom") == false)
 			{
-				((EntityPlayer) damagesource.getEntity()).addChatComponentMessage(new ChatComponentText("Cannot remove " + getTrainName() + " owned by " + getTransportOwner() + "."));
 				return false;
 			}
 
-			setRollingDirection(-getRollingDirection());
-			setRollingAmplitude(10);
-			setBeenAttacked();
-			if (((EntityPlayer) damagesource.getEntity()).capabilities.isCreativeMode)
-			{
-				this.setDamage(1000);
-				if (ConfigHandler.ENABLE_WAGON_REMOVAL_NOTICES && ((EntityPlayer) damagesource.getEntity()).canCommandSenderUseCommand(2,""))
-				{
-					((EntityPlayer) damagesource.getEntity()).addChatComponentMessage(new ChatComponentText("Operator removed " + getTrainName() + " owned by " + getTransportOwner() + "."));
-				}
-			}
-			setDamage(getDamage() + i * 10);
-			if (getDamage() > 40)
-			{
-				if (riddenByEntity != null)
-				{
-					riddenByEntity.mountEntity(this);
-				}
-				onEntityDestruction(damagesource);
-				ServerLogger.deleteWagon(this);
-				if (((EntityPlayer) damagesource.getEntity()).getDisplayName().equals(getTransportOwner()) == false)
-				{
-					DebugUtil.log(Level.INFO, "RollingStockRemovedEvent: " + ((EntityPlayer) damagesource.getEntity()).getDisplayName() + "| Destroyed " + getTrainName() + "| ReportMark:" + getTrainNote() + "| Owned By: " + getTransportOwner());
-				}
-
-				if (damagesource.getEntity() instanceof EntityPlayer)
-				{
-					((EntityPlayer) damagesource.getEntity()).addChatComponentMessage(new ChatComponentText(((EntityPlayer) damagesource.getEntity()).getDisplayName() + " Destroyed " + getTrainName() + (getTrainNote().isEmpty() ? "" : " (" + getTrainNote() + ")")  + " Owned By: " + getTransportOwner()));
-				}
-
-				this.setDead();
-				dropCartAsItem(((EntityPlayer)damagesource.getEntity()).capabilities.isCreativeMode);
-			}
+			applyRollingStockDamage(damagesource, i, ((EntityPlayer)damagesource.getEntity()).capabilities.isCreativeMode);
+		}
+		else if (canMobDamageRollingStock(damagesource))
+		{
+			applyRollingStockDamage(damagesource, i, false);
 		}
 		return true;
+	}
+
+	private boolean canMobDamageRollingStock(DamageSource damagesource)
+	{
+		if (ConfigHandler.ALLOW_MOB_DAMAGE_ROLLING_STOCK == false || damagesource == null || getTrainLockedFromPacket())
+		{
+			return false;
+		}
+
+		Entity attacker = damagesource.getEntity();
+		if (attacker instanceof EntityLivingBase && (attacker instanceof EntityPlayer) == false)
+		{
+			if (damagesource.isProjectile())
+			{
+				return true;
+			}
+		}
+		return attacker instanceof EntityCreeper && damagesource.isExplosion();
+	}
+
+	private void applyRollingStockDamage(DamageSource damagesource, float damage, boolean creativeDrop)
+	{
+		Entity attacker = damagesource.getEntity();
+		setRollingDirection(-getRollingDirection());
+		setRollingAmplitude(10);
+		setBeenAttacked();
+		if (creativeDrop)
+		{
+			this.setDamage(1000);
+			if (ConfigHandler.ENABLE_WAGON_REMOVAL_NOTICES && attacker instanceof EntityPlayer && ((EntityPlayer)attacker).canCommandSenderUseCommand(2,""))
+			{
+				((EntityPlayer)attacker).addChatComponentMessage(new ChatComponentText("Operator removed " + getTrainName() + " owned by " + getTransportOwner() + "."));
+			}
+		}
+		setDamage(getDamage() + damage * 10);
+		if (getDamage() > 40)
+		{
+			if (riddenByEntity != null)
+			{
+				riddenByEntity.mountEntity(this);
+			}
+			onEntityDestruction(damagesource);
+			recordRollingStockRemoval(damagesource);
+
+			if (attacker instanceof EntityPlayer)
+			{
+				((EntityPlayer)attacker).addChatComponentMessage(new ChatComponentText(((EntityPlayer)attacker).getDisplayName() + " Destroyed " + getTrainName() + (getTrainNote().isEmpty() ? "" : " (" + getTrainNote() + ")")  + " Owned By: " + getTransportOwner()));
+			}
+
+			this.setDead();
+			dropCartAsItem(creativeDrop);
+		}
 	}
 
 	public void onEntityDestruction(DamageSource damagesource)
 	{
 		// Mostly used for child classes
+	}
+
+	protected void logRollingStockRemovedEvent(DamageSource damagesource)
+	{
+		Entity attacker = damagesource != null ? damagesource.getEntity() : null;
+		if (attacker instanceof EntityPlayer)
+		{
+			String playerName = ((EntityPlayer)attacker).getDisplayName();
+			if (playerName.equals(getTransportOwner()))
+			{
+				return;
+			}
+			DebugUtil.log(Level.INFO, "RollingStockRemovedEvent: " + playerName + "| Destroyed " + getTrainName() + "| ReportMark:" + getTrainNote() + "| Owned By: " + getTransportOwner() + "| DamageType:" + damagesource.getDamageType());
+			return;
+		}
+
+		DebugUtil.log(Level.INFO, "RollingStockRemovedEvent: " + getDamageSourceDescription(damagesource) + "| Destroyed " + getTrainName() + "| ReportMark:" + getTrainNote() + "| Owned By: " + getTransportOwner() + "| Pos:" + posX + "," + posY + "," + posZ + "| Chunk:" + chunkCoordX + "," + chunkCoordZ);
+	}
+
+	protected void recordRollingStockRemoval(DamageSource damagesource)
+	{
+		logRollingStockRemovedEvent(damagesource);
+		ServerLogger.deleteWagon(this);
+	}
+
+	private String getDamageSourceDescription(DamageSource damagesource)
+	{
+		if (damagesource == null)
+		{
+			return "UnknownSource";
+		}
+		Entity attacker = damagesource.getEntity();
+		Entity source = damagesource.getSourceOfDamage();
+		StringBuilder detail = new StringBuilder();
+		detail.append("NonPlayerSource");
+		detail.append("| DamageType:").append(damagesource.getDamageType());
+		detail.append("| Attacker:").append(attacker != null ? attacker.getClass().getName() + "#" + attacker.getEntityId() : "null");
+		detail.append("| Source:").append(source != null ? source.getClass().getName() + "#" + source.getEntityId() : "null");
+		return detail.toString();
 	}
 
 

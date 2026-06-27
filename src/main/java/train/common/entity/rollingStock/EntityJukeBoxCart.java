@@ -9,10 +9,8 @@ import net.minecraft.entity.item.EntityMinecart;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 import train.common.Traincraft;
-import train.common.adminbook.ServerLogger;
 import train.common.api.EntityRollingStock;
 import train.common.core.util.ReplacementStreamPlayer;
 import train.common.enums.LockoutGroup;
@@ -36,32 +34,6 @@ public class EntityJukeBoxCart extends EntityRollingStock {
 		InsertTexture(0, "Jukebox Cart", LockoutGroup.ADMIN);
 	}
 
-
-
-	@Override
-	public boolean attackEntityFrom(DamageSource damagesource, float i) {
-		if (worldObj.isRemote) {
-			return true;
-		}
-		if(canBeDestroyedByPlayer(damagesource))return true;
-		super.attackEntityFrom(damagesource, i);
-		setRollingDirection(-getRollingDirection());
-		setRollingAmplitude(10);
-		setBeenAttacked();
-		setDamage(getDamage() + i * 10);
-		if (getDamage() > 40) {
-			if (riddenByEntity != null) {
-				riddenByEntity.mountEntity(this);
-			}
-			this.setDead();
-			ServerLogger.deleteWagon(this);
-			if(damagesource.getEntity() instanceof EntityPlayer) {
-				dropCartAsItem(((EntityPlayer)damagesource.getEntity()).capabilities.isCreativeMode);
-			}
-		}
-		return true;
-	}
-	
 	@Override
 	public void setDead() {
 		this.stopStream();

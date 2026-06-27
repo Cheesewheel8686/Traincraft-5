@@ -12,6 +12,7 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import train.common.Traincraft;
 import train.common.api.EntityRollingStock;
 import train.common.api.LiquidTank;
+import train.common.utils.TrainSaveLifecycleLogger;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -109,12 +110,17 @@ public class ServerLogger {
         sb.append("_");
         sb.append(wagon.getUniqueID().toString().toLowerCase());
         sb.append(".txt");
+        File f = new File(sb.toString());
+        boolean existed = f.exists() && !f.isDirectory();
+        boolean deleted = false;
         try {
-            File f = new File(sb.toString());
-            if (f.exists() && !f.isDirectory()) {
-                f.delete();
+            if (existed) {
+                deleted = f.delete();
             }
-        } catch (Exception e){}//if it fails there was nothing to delete, so same result
+            TrainSaveLifecycleLogger.log("ADMIN_BACKUP_DELETE", wagon, "path=" + f.getAbsolutePath() + " existed=" + existed + " deleted=" + deleted + " deathDim=" + wagon.dimension + " deathPos=(" + wagon.posX + "," + wagon.posY + "," + wagon.posZ + ") deathChunk=(" + wagon.chunkCoordX + "," + wagon.chunkCoordZ + ")");
+        } catch (Exception e){
+            TrainSaveLifecycleLogger.log("ADMIN_BACKUP_DELETE_FAILED", wagon, "path=" + f.getAbsolutePath() + " existed=" + existed + " exception=" + e.getClass().getName() + " deathDim=" + wagon.dimension + " deathPos=(" + wagon.posX + "," + wagon.posY + "," + wagon.posZ + ") deathChunk=(" + wagon.chunkCoordX + "," + wagon.chunkCoordZ + ")");
+        }//if it fails there was nothing to delete, so same result
     }
 
 

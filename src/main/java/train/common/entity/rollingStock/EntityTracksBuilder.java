@@ -30,7 +30,6 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.event.world.BlockEvent;
 import train.common.Traincraft;
-import train.common.adminbook.ServerLogger;
 import train.common.api.EntityRollingStock;
 import train.common.api.Freight;
 import train.common.blocks.BlockTCRail;
@@ -708,32 +707,12 @@ public class EntityTracksBuilder extends EntityRollingStock implements IInventor
 	}
 
 	@Override
-	public boolean attackEntityFrom(DamageSource damagesource, float i) {
-		if (worldObj.isRemote) {
-			return true;
-		}
-		if(canBeDestroyedByPlayer(damagesource))return true;
-		super.attackEntityFrom(damagesource, i);
-		setRollingDirection(-getRollingDirection());
-		setRollingAmplitude(10);
-		setBeenAttacked();
-		setDamage(getDamage() + i * 10);
-		if (getDamage() > 40) {
-			if (riddenByEntity != null) {
-				riddenByEntity.mountEntity(this);
-			}
-			this.setDead();
-			ServerLogger.deleteWagon(this);
-			if(damagesource.getEntity() instanceof EntityPlayer) {
-				dropCartAsItem(((EntityPlayer)damagesource.getEntity()).capabilities.isCreativeMode);
-				for(ItemStack stack : BuilderInvent){
-					if (stack != null) {
-						entityDropItem(stack, 0);
-					}
-				}
+	public void onEntityDestruction(DamageSource damagesource) {
+		for (ItemStack stack : BuilderInvent) {
+			if (stack != null) {
+				entityDropItem(stack, 0);
 			}
 		}
-		return true;
 	}
 
 	/**

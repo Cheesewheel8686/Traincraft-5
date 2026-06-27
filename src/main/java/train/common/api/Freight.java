@@ -49,17 +49,6 @@ public abstract class Freight extends EntityRollingStock implements IInventory
 	}
 
 	@Override
-	public boolean attackEntityFrom(DamageSource damagesource, float i) {
-		if (worldObj.isRemote) {
-			return true;
-		}
-		if(canBeDestroyedByPlayer(damagesource))return true;
-		super.attackEntityFrom(damagesource, i);
-
-		return true;
-	}
-
-	@Override
 	public void onEntityDestruction(DamageSource damagesource)
 	{
 		if(damagesource.getEntity() instanceof EntityPlayer)

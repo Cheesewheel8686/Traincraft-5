@@ -17,6 +17,7 @@ import java.io.File;
 import static net.minecraftforge.common.config.Configuration.CATEGORY_GENERAL;
 
 public class ConfigHandler {
+	public static final String CATEGORY_TRAIN_LIFECYCLE_DIAGNOSTICS = "CATEGORY_TRAIN_LIFECYCLE_DIAGNOSTICS";
 
 	public static boolean ORE_GEN;
 	public static boolean COPPER_ORE_GEN;
@@ -42,6 +43,10 @@ public class ConfigHandler {
 	public static boolean ENABLE_WAGON_REMOVAL_NOTICES;
 	public static boolean ENABLE_LOGGING;
 	public static boolean ENABLE_TRAIN_SAVE_LIFECYCLE_LOGGING;
+	public static boolean ENABLE_TRAIN_ATTACK_REMOVAL_GUARD;
+	public static boolean ALLOW_MOB_DAMAGE_ROLLING_STOCK;
+	public static boolean LOG_DENIED_TRAIN_REMOVAL;
+	public static double MAX_TRAIN_REMOVAL_DISTANCE;
 	public static boolean FIRST_RUN;
 	public static boolean ALLOW_ATO_ON_STEAMERS;
 	public static boolean ENABLE_TILT_HANDLER;
@@ -102,6 +107,11 @@ public class ConfigHandler {
 			ENABLE_WAGON_REMOVAL_NOTICES = cf.get(CATEGORY_GENERAL, "ENABLE_WAGON_REMOVAL_NOTICES", true, "When OP and creative mode, tells you the owner of the train or rollingstock you just removed").getBoolean(true);
 			ENABLE_LOGGING = cf.get(CATEGORY_GENERAL, "ENABLE_TRANSPORT_LOGGING", true, "Logs the data for trains and rollingstock, turning this off will improve performance but break the admin book").getBoolean(true);
 			ENABLE_TRAIN_SAVE_LIFECYCLE_LOGGING = cf.get(CATEGORY_GENERAL, "ENABLE_TRAIN_SAVE_LIFECYCLE_LOGGING", false, "Diagnostic-only logging for Traincraft entity chunk save/load decisions, especially writeToNBTOptional skips.").getBoolean(false);
+			ENABLE_TRAIN_SAVE_LIFECYCLE_LOGGING = cf.get(CATEGORY_TRAIN_LIFECYCLE_DIAGNOSTICS, "ENABLE_TRAIN_SAVE_LIFECYCLE_LOGGING", false, "Diagnostic-only logging for Traincraft entity chunk save/load decisions, especially writeToNBTOptional skips.").getBoolean(false);
+			ENABLE_TRAIN_ATTACK_REMOVAL_GUARD = cf.get(CATEGORY_TRAIN_LIFECYCLE_DIAGNOSTICS, "ENABLE_TRAIN_ATTACK_REMOVAL_GUARD", true, "Requires train removal damage to come from a nearby real server-side player, preventing fake/player-context server damage from deleting rolling stock.").getBoolean(true);
+			ALLOW_MOB_DAMAGE_ROLLING_STOCK = cf.get(CATEGORY_TRAIN_LIFECYCLE_DIAGNOSTICS, "ALLOW_MOB_DAMAGE_ROLLING_STOCK", true, "Allows non-player mob projectiles and creeper explosions to damage unlocked Traincraft rolling stock. Mob melee, server, fake-player, generic, and environmental sources remain blocked by this option.").getBoolean(true);
+			MAX_TRAIN_REMOVAL_DISTANCE = cf.get(CATEGORY_TRAIN_LIFECYCLE_DIAGNOSTICS, "MAX_TRAIN_REMOVAL_DISTANCE", 8.0D, "Maximum distance in blocks for player damage to be allowed to permanently remove rolling stock.").getDouble(8.0D);
+			LOG_DENIED_TRAIN_REMOVAL = cf.get(CATEGORY_TRAIN_LIFECYCLE_DIAGNOSTICS, "LOG_DENIED_TRAIN_REMOVAL", true, "Logs denied Traincraft rolling stock damage-removal attempts to the save lifecycle log when lifecycle logging is enabled.").getBoolean(true);
 
 			FIRST_RUN = cf.get(CATEGORY_GENERAL, "FIRST_RUN", true).getBoolean(true);
 			ALLOW_ATO_ON_STEAMERS = cf.get(CATEGORY_GENERAL, "ALLOW_ATO_ON_STEAMERS", false, "Allows Minecraft Train Control's ATO system to be used on steam trains").getBoolean(true);

@@ -5,12 +5,10 @@ import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.*;
-import train.common.adminbook.ServerLogger;
 import train.common.entity.rollingStock.tanker.EntityTankLava;
 import train.common.library.ItemIDs;
 
@@ -356,17 +354,6 @@ public class LiquidTank extends EntityRollingStock implements IFluidHandler, ISi
 	@Override
 	public int getSizeInventory() {
 		return cargoItems.length;
-	}
-
-	@Override
-	public boolean attackEntityFrom(DamageSource damagesource, float i) {
-		if (worldObj.isRemote) {
-			return true;
-		}
-		if(canBeDestroyedByPlayer(damagesource))return true;
-		super.attackEntityFrom(damagesource, i);
-
-		return true;
 	}
 
 	@Override

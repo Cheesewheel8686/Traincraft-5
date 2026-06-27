@@ -36,7 +36,6 @@ import org.lwjgl.input.Keyboard;
 import train.client.MovingTrainSound;
 import train.client.core.handlers.TCKeyHandler;
 import train.common.Traincraft;
-import train.common.adminbook.ServerLogger;
 import train.common.api.locomotive.AbstractBoilerLocomotive;
 import train.common.core.HandleMaxAttachedCarts;
 import train.common.core.handlers.ConfigHandler;
@@ -1659,39 +1658,8 @@ public abstract class Locomotive extends EntityRollingStock implements IInventor
     //	}
 
     @Override
-    public boolean attackEntityFrom(DamageSource damagesource, float i) {
-        if (worldObj.isRemote) {
-            return true;
-        }
-        if (worldObj.isRemote) {
-
-            if (Minecraft.getMinecraft().thePlayer != null) {
-                for (int i2 = 0; i2 < Minecraft.getMinecraft().thePlayer.inventory.getSizeInventory(); i2++) {
-                    if (Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(i2) != null && Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(i2).getItem() instanceof ItemRemoteController && ((ItemRemoteController) Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(i2).getItem()).attachedLocomotive == this) {
-                        ((ItemRemoteController) Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(i2).getItem()).attachedLocomotive = null;
-                        break;
-                    }
-                }
-            }
-            return true;
-
-        }
-        if (canBeDestroyedByPlayer(damagesource)) return true;
-        super.attackEntityFrom(damagesource, i);
-        if (getDamage() > 40) {
-            disconnectFromServer();
-
-            if (ttTransceiver != null) ttTransceiver.disconnect();
-            ServerLogger.deleteWagon(this);
-
-
-            if (damagesource.getEntity() instanceof EntityPlayer) {
-                dropCartAsItem(((EntityPlayer) damagesource.getEntity()).capabilities.isCreativeMode);
-            } else {
-                dropCartAsItem(false);
-            }
-        }
-        return true;
+    public void onEntityDestruction(DamageSource damagesource) {
+        disconnectFromServer();
     }
 
     @Override

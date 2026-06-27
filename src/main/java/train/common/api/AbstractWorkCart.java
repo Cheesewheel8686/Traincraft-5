@@ -18,7 +18,6 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import train.common.Traincraft;
-import train.common.adminbook.ServerLogger;
 import train.common.library.GuiIDs;
 
 public abstract class AbstractWorkCart extends EntityRollingStock implements IInventory, IRollingStockLightControls
@@ -515,34 +514,12 @@ public abstract class AbstractWorkCart extends EntityRollingStock implements IIn
 	}
 
 	@Override
-	public boolean attackEntityFrom(DamageSource damagesource, float i) {
-		if (worldObj.isRemote) {
-			return true;
-		}
-		if(this.canBeDestroyedByPlayer(damagesource) || damagesource.getEntity() == null){
-			return false;
-		}
-		super.attackEntityFrom(damagesource, i);
-		setRollingDirection(-getRollingDirection());
-		setRollingAmplitude(10);
-		setBeenAttacked();
-		setDamage(getDamage() + i * 10);
-		if (getDamage() > 40) {
-			if (riddenByEntity != null) {
-				riddenByEntity.mountEntity(this);
-			}
-			this.setDead();
-			ServerLogger.deleteWagon(this);
-			if(damagesource.getEntity() instanceof EntityPlayer) {
-				for(ItemStack stack : furnaceItemStacks){
-					if (stack != null) {
-						entityDropItem(stack,1);
-					}
-				}
-				dropCartAsItem(((EntityPlayer)damagesource.getEntity()).capabilities.isCreativeMode);
+	public void onEntityDestruction(DamageSource damagesource) {
+		for (ItemStack stack : furnaceItemStacks) {
+			if (stack != null) {
+				entityDropItem(stack, 1);
 			}
 		}
-		return true;
 	}
 	
 	@Override

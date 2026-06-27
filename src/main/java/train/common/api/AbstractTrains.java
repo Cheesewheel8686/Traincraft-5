@@ -22,6 +22,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.ForgeChunkManager.Ticket;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.common.util.FakePlayer;
 import org.apache.commons.lang3.ArrayUtils;
 import train.client.gui.GuiTCTextField;
 import train.client.render.register.SubTrainRenderRecord;
@@ -949,7 +950,17 @@ public abstract class AbstractTrains extends EntityMinecart implements IMinecart
 		return (train instanceof Locomotive) || (train instanceof IPassenger) || (train instanceof AbstractWorkCart);
 	}
 
-	protected boolean canBeDestroyedByPlayer(DamageSource damagesource) {
+	protected boolean canRollingStockBeRemovedBy(DamageSource damagesource, float damage, String context) {
+		if (isRemovalBlockedByLockOwnership(damagesource)) {
+			return false;
+		}
+		return isDamageSourceAllowedForRemoval(damagesource, damage, context);
+	}
+
+	private boolean isRemovalBlockedByLockOwnership(DamageSource damagesource) {
+		if (damagesource == null) {
+			return this.getTrainLockedFromPacket();
+		}
 		if (this.getTrainLockedFromPacket())
 		{
 			if (damagesource.getEntity() instanceof EntityPlayer)
@@ -959,22 +970,77 @@ public abstract class AbstractTrains extends EntityMinecart implements IMinecart
 						((EntityPlayer) damagesource.getEntity()).inventory.getCurrentItem() != null &&
 						((EntityPlayer) damagesource.getEntity()).inventory.getCurrentItem().getItem() instanceof ItemWrench)
 				{
-
 					((EntityPlayer) damagesource.getEntity()).addChatMessage(new ChatComponentText("Removing the train using OP permission"));
 					return false;
 				}
-				else if (!((EntityPlayer) damagesource.getEntity()).getDisplayName().equalsIgnoreCase(this.trainOwner) && !(this.isPlayerTrustedToBreak(((EntityPlayerMP) damagesource.getEntity()).getDisplayName())))
+				else if ((damagesource.getEntity() instanceof EntityPlayerMP) == false)
+				{
+					((EntityPlayer) damagesource.getEntity()).addChatMessage(new ChatComponentText("You are not the owner!"));
+					return true;
+				}
+				else if (((EntityPlayer) damagesource.getEntity()).getDisplayName().equalsIgnoreCase(this.trainOwner) == false && this.isPlayerTrustedToBreak(((EntityPlayerMP) damagesource.getEntity()).getDisplayName()) == false)
 				{
 					((EntityPlayer) damagesource.getEntity()).addChatMessage(new ChatComponentText("You are not the owner!"));
 					return true;
 				}
 			}
-			else if (!damagesource.isProjectile())
+			else if (damagesource.isProjectile() == false)
 			{
 				return true;
 			}
 		}
 		return false;
+	}
+
+	private boolean isDamageSourceAllowedForRemoval(DamageSource damagesource, float damage, String context) {
+		if (damagesource == null || (damagesource.getEntity() instanceof EntityPlayerMP) == false) {
+			if (ConfigHandler.ENABLE_TRAIN_ATTACK_REMOVAL_GUARD == false) {
+				TrainSaveLifecycleLogger.logAttackRemovalAllowedGuardDisabled(this, damagesource, damage, context);
+				return true;
+			}
+			TrainSaveLifecycleLogger.logAttackRemovalDeniedNoPlayer(this, damagesource, damage, context);
+			return false;
+		}
+
+		EntityPlayerMP player = (EntityPlayerMP)damagesource.getEntity();
+		if (player instanceof FakePlayer) {
+			TrainSaveLifecycleLogger.logAttackRemovalDeniedFakePlayer(this, damagesource, damage, context);
+			return false;
+		}
+		if (ConfigHandler.ENABLE_TRAIN_ATTACK_REMOVAL_GUARD == false) {
+			TrainSaveLifecycleLogger.logAttackRemovalAllowedGuardDisabled(this, damagesource, damage, context);
+			return true;
+		}
+		if (worldObj == null || worldObj.isRemote) {
+			TrainSaveLifecycleLogger.logAttackRemovalDeniedRemoteWorld(this, damagesource, damage, context);
+			return false;
+		}
+		if (player.worldObj != this.worldObj || player.dimension != this.dimension) {
+			TrainSaveLifecycleLogger.logAttackRemovalDeniedCrossWorld(this, player, damagesource, damage, context);
+			return false;
+		}
+		if (damagesource.getSourceOfDamage() != player) {
+			TrainSaveLifecycleLogger.logAttackRemovalDeniedIndirectSource(this, damagesource, damage, context);
+			return false;
+		}
+		if (isPlayerRemovalDamageType(damagesource) == false) {
+			TrainSaveLifecycleLogger.logAttackRemovalDeniedDamageType(this, damagesource, damage, context);
+			return false;
+		}
+		double maxDistance = Math.max(0.0D, ConfigHandler.MAX_TRAIN_REMOVAL_DISTANCE);
+		double distanceSq = player.getDistanceSqToEntity(this);
+		if (maxDistance > 0.0D && distanceSq > maxDistance * maxDistance) {
+			TrainSaveLifecycleLogger.logAttackRemovalDeniedDistance(this, damagesource, damage, context, distanceSq, maxDistance);
+			return false;
+		}
+
+		TrainSaveLifecycleLogger.logAttackRemovalAllowed(this, damagesource, damage, context);
+		return true;
+	}
+
+	private boolean isPlayerRemovalDamageType(DamageSource damagesource) {
+		String damageType = damagesource.getDamageType();
+		return "player".equals(damageType) && damagesource.isProjectile() == false && damagesource.isExplosion() == false && damagesource.isFireDamage() == false && damagesource.isMagicDamage() == false;
 	}
 
 	public final static void dropStockInventoryContents(AbstractTrains stock, ItemStack cargoItems[])
