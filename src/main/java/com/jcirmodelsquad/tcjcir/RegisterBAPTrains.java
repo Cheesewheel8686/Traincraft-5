@@ -3992,7 +3992,7 @@ public class RegisterBAPTrains
                             .setTrainType("slug")
                             .setMass(7)
                             .setTankCapacity(18000)
-                            .setColors(new String[] {"White", "Skin16", "Magenta", "Blue", "Yellow"})
+                            .setColors(new String[] {"White", "Skin16", "Magenta", "Blue", "Yellow", "Green"})
                             .setGuiRenderScale(16)
             );
 

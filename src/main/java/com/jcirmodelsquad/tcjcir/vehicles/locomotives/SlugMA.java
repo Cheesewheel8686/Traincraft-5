@@ -15,6 +15,7 @@ public class SlugMA extends AbstractTankSlug
 		InsertTexture(2, "Magnolia", LockoutGroup.MAG);
 		InsertTexture(3, "CSXT");
 		InsertTexture(4, "ATSF");
+		InsertTexture(5, "CWL", LockoutGroup.CWL);
 	}
 
 	@Override
