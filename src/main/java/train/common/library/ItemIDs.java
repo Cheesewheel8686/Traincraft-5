@@ -65,7 +65,7 @@ public enum ItemIDs {
 	steelRail("ItemTrain", "item_rail_steel", 1),
 	recipeBook("ItemRecipeBook", "item_book_blue", 1),
 	//creditsBook("ItemRecipeBook", "item_book_brown", 1),
-	adminBook("ItemAdminBook", "item_book_blue"),
+	adminBook("ItemAdminBook", "item_book_black"),
 	lockoutBook("ItemLockoutBook", "item_book_blue", 1),
 	trackDebugger("ItemTrackDebugger", "item_composite_wrench", 0),
 	wirelessTransmitter("ItemWirelessTransmitter", "wireless_transmitter", 3),
