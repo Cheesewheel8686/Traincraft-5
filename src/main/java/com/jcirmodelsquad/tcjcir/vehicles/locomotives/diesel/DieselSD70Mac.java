@@ -22,10 +22,11 @@ public class DieselSD70Mac extends DieselTrain {
         InsertTexture(0, "Alaska Railroad (Passenger MACs, 4317-4328");
         InsertTexture(1, "CSXT (Yn2)");
         InsertTexture(2, "CSXT (Yn3)");
-        InsertTexture(3, "Blandsville & Blankerston");
-        InsertTexture(4, "FNCC (Kit80)", LockoutGroup.FNCC);
-        InsertTexture(5, "");
+        InsertTexture(3, "CSXT (Yn3, Flared)");
+        InsertTexture(4, "Blandsville & Blankerston");
+        InsertTexture(5, "FNCC (Kit80)", LockoutGroup.FNCC);
         InsertTexture(6, "");
+        InsertTexture(7, "");
     }
 
     @Override
