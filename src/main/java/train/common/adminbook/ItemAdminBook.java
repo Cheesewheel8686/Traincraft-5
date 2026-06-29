@@ -88,6 +88,6 @@ public class ItemAdminBook extends Item {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister iconRegister) {
-        this.itemIcon = iconRegister.registerIcon(Info.modID.toLowerCase() + ":parts/item_book_blue");
+        this.itemIcon = iconRegister.registerIcon(Info.modID.toLowerCase() + ":parts/item_book_black");
     }
 }

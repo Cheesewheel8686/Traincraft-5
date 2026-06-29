@@ -7,6 +7,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 import train.common.Traincraft;
@@ -20,6 +21,7 @@ import java.util.List;
 
 public class PacketAdminBookClient implements IMessage
 {
+    private static final String EMPTY_PAGE = "!empty";
     private String id;
     private int player;
 
@@ -157,47 +159,141 @@ public class PacketAdminBookClient implements IMessage
                             {
                                 f.delete();
                             }
+                            sendAdminBookPage(message.player, getParentBookPath(message.id));
+                            return null;
                         }
                     } catch (Exception e){}
                 }
                 else
                 {
-                    if(!message.id.equals(""))
-                    {
-                        sb.append(",");
-                    }
-                    File[] folder = f.listFiles();
-                    if (folder !=null)
-                    {
-                        for (File file : folder)
-                        {
-                            if (shouldShowInAdminBook(message.id, file))
-                            {
-                                sb.append(message.id);
-                                if(!message.id.equals(""))
-                                {
-                                    sb.append("/");
-                                }
-                                sb.append(file.getName());
-                                sb.append(",");
-                            }
-                        }
-                    }
+                    sb.append(buildAdminBookList(message.id, f));
                 }
                 if(sb.toString().length()<5)
                 {
+                    if (!sendAdminBookPage(message.player, ""))
+                    {
+                        sendAdminBookPayload(message.player, EMPTY_PAGE);
+                    }
                     return null;
                 }
-                for (WorldServer world : DimensionManager.getWorlds())
+                sendAdminBookPayload(message.player, sb.toString());
+            }
+            return null;
+        }
+
+        private static boolean sendAdminBookPage(int playerId, String currentPath)
+        {
+            File folder = new File(Traincraft.configDirectory.getAbsolutePath() + "/traincraft/" + normalizeBookPath(currentPath));
+            if (!folder.exists() || !folder.isDirectory())
+            {
+                return false;
+            }
+
+            String payload = buildAdminBookList(currentPath, folder);
+            if (payload.length() < 5 && currentPath != null && currentPath.length() > 0)
+            {
+                return sendAdminBookPage(playerId, "");
+            }
+            if (payload.length() < 5)
+            {
+                payload = EMPTY_PAGE;
+            }
+            sendAdminBookPayload(playerId, payload);
+            return true;
+        }
+
+        private static void sendAdminBookPayload(int playerId, String payload)
+        {
+            for (WorldServer world : DimensionManager.getWorlds())
+            {
+                if (world.getEntityByID(playerId) != null)
                 {
-                    if (world.getEntityByID(message.player) != null)
+                    Traincraft.keyChannel.sendTo(new PacketAdminBook(1, -1, payload), (EntityPlayerMP) world.getEntityByID(playerId));
+                    return;
+                }
+            }
+        }
+
+        private static String buildAdminBookList(String currentPath, File folder)
+        {
+            String normalizedPath = normalizeBookPath(currentPath);
+            StringBuilder sb = new StringBuilder();
+            if(!normalizedPath.equals(""))
+            {
+                sb.append(",");
+            }
+            File[] files = folder.listFiles();
+            if (files !=null)
+            {
+                for (File file : files)
+                {
+                    if (shouldShowInAdminBook(normalizedPath, file))
                     {
-                        Traincraft.keyChannel.sendTo(new PacketAdminBook(1, -1, sb.toString()), (EntityPlayerMP) world.getEntityByID(message.player));
-                        return null;
+                        if(!normalizedPath.equals(""))
+                        {
+                            sb.append(normalizedPath);
+                            sb.append("/");
+                        }
+                        sb.append(file.getName());
+                        sb.append(",");
+                    }
+                }
+            }
+            return sb.toString();
+        }
+
+        private static String normalizeBookPath(String path)
+        {
+            if (path == null)
+            {
+                return "";
+            }
+            while (path.endsWith("/") || path.endsWith("\\"))
+            {
+                path = path.substring(0, path.length() - 1);
+            }
+            return path;
+        }
+
+        private static String getParentBookPath(String path)
+        {
+            path = normalizeBookPath(path);
+            int separator = path.lastIndexOf("/");
+            if (separator < 0)
+            {
+                separator = path.lastIndexOf("\\");
+            }
+            return separator >= 0 ? path.substring(0, separator) : "";
+        }
+
+        private static EntityPlayerMP findOnlinePlayer(String playerName)
+        {
+            if (playerName == null)
+            {
+                return null;
+            }
+            for (Object playerObject : MinecraftServer.getServer().getConfigurationManager().playerEntityList)
+            {
+                if (playerObject instanceof EntityPlayerMP)
+                {
+                    EntityPlayerMP player = (EntityPlayerMP) playerObject;
+                    if (player.getCommandSenderName().equalsIgnoreCase(playerName))
+                    {
+                        return player;
                     }
                 }
             }
             return null;
+        }
+
+        private static String clean(String value)
+        {
+            return value == null ? "" : value.replace(',', ' ').replace('|', ' ').replace('\n', ' ').replace('\r', ' ').trim();
+        }
+
+        private static String format(double value)
+        {
+            return String.format("%.2f", value);
         }
 
         private static boolean shouldShowInAdminBook(String currentPath, File file)
