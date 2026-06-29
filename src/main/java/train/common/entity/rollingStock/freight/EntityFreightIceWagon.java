@@ -25,4 +25,21 @@ public class EntityFreightIceWagon extends AbstractStandardFixedFreightCar
 		return 0.75F;
 	}
 
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightIceWagon.class,
+						new train.client.render.models.ModelIceWagon(),
+						"icewagon",
+						new float[] { 0.0F, 0.2F, 0F },
+						new float[] { 0F, 180F, 180F },
+						new float[]{0.9f,1f,0.9f}
+				)
+		);
+	}
 }

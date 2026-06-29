@@ -27,4 +27,21 @@ public class EntityFreightWood extends AbstractStandardFixedFreightCar
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 1.85F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightWood.class,
+						new train.client.render.models.ModelWood(),
+						"wood_Full",
+						new float[] { 0.0F, -0.42F, 0.0F },
+						null,
+						null
+				)
+		);
+	}
 }

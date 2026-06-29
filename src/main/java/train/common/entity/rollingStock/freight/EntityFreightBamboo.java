@@ -22,4 +22,21 @@ public class EntityFreightBamboo extends AbstractStandardFixedFreightCar
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 1.55F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightBamboo.class,
+						new train.client.render.models.ModelBambooTrainCargo(),
+						"bamboo_freight_",
+						new float[] { 0.1F, 0F, 0F },
+						new float[] { 0F, 180F, 180F },
+						null
+				)
+		);
+	}
 }

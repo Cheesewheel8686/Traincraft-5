@@ -21,4 +21,21 @@ public class EntityFlatCar_DB extends AbstractPassengerCar {
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 1.84F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFlatCar_DB.class,
+						new train.client.render.models.ModelFlatCar_DB(),
+						"flatCar_DB_",
+						new float[] { 0.0F, -0.44F, 0.0F },
+						null,
+						null
+				)
+		);
+	}
 }

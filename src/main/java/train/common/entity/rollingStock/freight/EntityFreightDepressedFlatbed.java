@@ -54,4 +54,21 @@ public class EntityFreightDepressedFlatbed extends AbstractStandardFreightCar
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 3.8F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightDepressedFlatbed.class,
+						new train.client.render.models.ModelDepressedFlatbed(),
+						"depressed_flatbed_",
+						new float[] { -0.1F, 0.15F, -0.075F },
+						new float[] { 0F, 180F, 180F },
+						null
+				)
+		);
+	}
 }

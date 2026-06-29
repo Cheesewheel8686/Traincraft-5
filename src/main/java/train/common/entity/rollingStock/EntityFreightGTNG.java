@@ -25,4 +25,21 @@ public class EntityFreightGTNG extends AbstractStandardFixedFreightCar {
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 2.025F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightGTNG.class,
+						new train.client.render.ModelGTNG(),
+						"GTNGOreWagon",
+						new float[] { 0.0F, 0.2F, 0.0F },
+						new float[]{0,0,180},
+						new float[]{0.9f,1f,0.9f}
+				)
+		);
+	}
 }

@@ -30,4 +30,21 @@ public class EntityFreightKClassRailBox extends AbstractStandardFixedFreightCar
 	public boolean isFictional() {
 		return true;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightKClassRailBox.class,
+						new train.client.render.models.ModelKClassRailBox(),
+						"KClassRailBox_",
+						new float[] { -1.5F, 0.1F, 0.125F },
+						new float[] { 0F, 180F, 180F },
+						null
+				)
+		);
+	}
 }

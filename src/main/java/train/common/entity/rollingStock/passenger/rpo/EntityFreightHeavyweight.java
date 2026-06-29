@@ -30,4 +30,21 @@ public class EntityFreightHeavyweight extends AbstractStandardFixedFreightCar
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 3.2F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightHeavyweight.class,
+						new train.client.render.models.ModelHeavyweight(),
+						"heavyweight_mailcar",
+						new float[] { 0.1F, 0.18F, 0F },
+						new float[] { 0F, 180F, 180F },
+						new float[]{0.9f,1f,0.9f}
+				)
+		);
+	}
 }

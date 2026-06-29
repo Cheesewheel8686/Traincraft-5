@@ -22,4 +22,21 @@ public class EntityFreightCenterbeam_Empty extends AbstractStandardFixedFreightC
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 1.6F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightCenterbeam_Empty.class,
+						new train.client.render.models.ModelFreightCenterBeam_Empty(),
+						"freight_centerbeam_empty_",
+						new float[] { 0.0F, -0.44F, 0.0F },
+						new float[] { 0F, 90F, 0F },
+						null
+				)
+		);
+	}
 }

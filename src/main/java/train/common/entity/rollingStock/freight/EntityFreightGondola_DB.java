@@ -22,4 +22,21 @@ public class EntityFreightGondola_DB extends AbstractStandardFixedFreightCar
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 1.84F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightGondola_DB.class,
+						new train.client.render.models.ModelFreightGondola_DB(),
+						"freightGondola_DB_",
+						new float[] { 0.0F, -0.44F, 0.0F },
+						null,
+						null
+				)
+		);
+	}
 }

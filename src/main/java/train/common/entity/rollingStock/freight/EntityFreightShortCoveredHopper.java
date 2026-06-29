@@ -40,4 +40,21 @@ public class EntityFreightShortCoveredHopper extends AbstractStandardFixedFreigh
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 2F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightShortCoveredHopper.class,
+						new train.client.render.models.ModelShortCoveredHopper(),
+						"ShortCoveredHopper_",
+						new float[] { -2.2F, -0.25F, 0.7F },
+						new float[] { 0F, 180F, 180F },
+						null
+				)
+		);
+	}
 }

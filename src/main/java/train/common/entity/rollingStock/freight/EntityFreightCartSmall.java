@@ -22,4 +22,21 @@ public class EntityFreightCartSmall extends AbstractStandardFixedFreightCar impl
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 1.45F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightCartSmall.class,
+						new train.client.render.models.ModelSmallFreightCart(),
+						"freightCartSmall",
+						new float[] { 0.0F, -0.20F, 0.0F },
+						null,
+						null
+				)
+		);
+	}
 }

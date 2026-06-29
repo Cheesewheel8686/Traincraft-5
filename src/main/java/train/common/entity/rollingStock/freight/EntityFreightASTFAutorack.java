@@ -35,4 +35,21 @@ public class EntityFreightASTFAutorack extends AbstractStandardFixedFreightCar
 	public int getInventoryStackLimit() {
 		return 1;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightASTFAutorack.class,
+						new train.client.render.models.ModelASTFAutorack(),
+						"astf_autorack",
+						new float[] { -1F, 0.2F, 0F },
+						new float[] { 0F, 180F, 180F },
+						null
+				)
+		);
+	}
 }

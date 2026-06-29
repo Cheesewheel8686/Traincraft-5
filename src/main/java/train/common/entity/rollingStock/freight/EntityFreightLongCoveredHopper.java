@@ -40,4 +40,21 @@ public class EntityFreightLongCoveredHopper extends AbstractStandardFixedFreight
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 3.05F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightLongCoveredHopper.class,
+						new train.client.render.models.ModelLongCoveredHopper(),
+						"LongCoveredHopper_",
+						new float[] { -1F, -0.25F, 0.65F },
+						new float[] { 0F, 180F, 180F },
+						null
+				)
+		);
+	}
 }

@@ -82,4 +82,21 @@ public class EntityBulkheadFlatCart extends AbstractStandardFreightCar
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 2.3F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityBulkheadFlatCart.class,
+						new train.client.render.models.ModelBulkheadFlat(),
+						"BulkheadFlat_",
+						new float[]{-0F, 0.0F, 0F},
+						new float[] { 0F, 180F, 180F },
+						new float[]{0.9f,1f,0.9f}
+				)
+		);
+	}
 }

@@ -26,4 +26,21 @@ public class EntityFreightWellcar extends AbstractStandardFixedFreightCar implem
 	public float getOptimalDistance(EntityMinecart cart) {
 		return 1.8F;
 	}
+
+
+	@Override
+	public void onRenderInsertRecord()
+	{
+		train.common.Traincraft.traincraftRegistry.RegisterRollingStockModel(
+				new train.client.render.register.TrainRenderRecord(
+						train.common.library.Info.modID,
+						EntityFreightWellcar.class,
+						new train.client.render.models.ModelWellcar(),
+						"wellcar_",
+						new float[] { 0.0F, 0.0F, 0.0F },
+						new float[] { 0F, 180F, 180F },
+						null
+				)
+		);
+	}
 }
