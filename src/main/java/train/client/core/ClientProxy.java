@@ -354,6 +354,8 @@ public class ClientProxy extends CommonProxy
 			return entity1 != null ? new GuiLiquid(player,player.inventory, entity1) : null;
 		case (GuiIDs.RECIPE_BOOK):
 			return new GuiRecipeBook(player, player.getCurrentEquippedItem());
+		case (GuiIDs.LOCKOUT_BOOK):
+			return new GuiLockoutBook();
 		/*case (GuiIDs.RECIPE_BOOK2):
 			return te != null && te instanceof TileBook ? new GuiRecipeBook2(player, player.getCurrentEquippedItem()) : new GuiRecipeBook2(player, player.getCurrentEquippedItem());*/
 		case (GuiIDs.PAINTBRUSH):
