@@ -302,6 +302,14 @@ public class ClientProxy extends CommonProxy
 					entity1 = (Entity) ent;
 			}
 		}
+
+		for (cpw.mods.fml.common.network.IGuiHandler handler : devGuiHandlers) {
+			Object gui = handler.getClientGuiElement(ID, player, world, x, y, z);
+			if (gui != null) {
+				return gui;
+			}
+		}
+
 		switch (ID) {
 		case (GuiIDs.CRAFTER_TIER_I):
 			return te != null && te instanceof TileCrafterTierI ? new GuiCrafterTier(player.inventory, (TileCrafterTierI) te) : null;

@@ -47,6 +47,7 @@ import train.common.overlaytexture.EnumOverlayFonts;
 import train.common.overlaytexture.OverlayFontRegistry;
 import train.common.recipes.AssemblyTableRecipes;
 import train.common.utils.devutils.DebugUtil;
+import train.common.utils.devutils.OptionalDevBootstrap;
 import train.common.utils.devutils.TrainSheetsDataGenerator;
 import train.common.utils.lockout.ILockoutGroup;
 import train.common.utils.lockout.LockoutPermissionsUtil;
@@ -185,6 +186,7 @@ public static final SimpleNetworkWrapper gsfsrChannel = NetworkRegistry.INSTANCE
 		trainCloth = proxy.addArmor("Paintable");
 		trainCompositeSuit = proxy.addArmor("CompositeSuit");
 		TCBlocks.init();
+		OptionalDevBootstrap.init();
 		TCItems.init();
 		new EntityHandler();
 

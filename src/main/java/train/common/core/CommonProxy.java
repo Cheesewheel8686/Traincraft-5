@@ -61,6 +61,7 @@ import java.util.List;
 
 public class CommonProxy implements IGuiHandler {
 	public static List<ReplacementStreamPlayer> playerList = new ArrayList<ReplacementStreamPlayer>();
+	protected final List<IGuiHandler> devGuiHandlers = new ArrayList<IGuiHandler>();
 	public static boolean debug = false;
 
 	public void throwAlphaException() {
@@ -91,6 +92,12 @@ public class CommonProxy implements IGuiHandler {
 	public void registerEvent(Object o){
 		FMLCommonHandler.instance().bus().register(o);
 		MinecraftForge.EVENT_BUS.register(o);
+	}
+
+	public void registerDevGuiHandler(IGuiHandler handler) {
+		if (handler != null && !devGuiHandlers.contains(handler)) {
+			devGuiHandlers.add(handler);
+		}
 	}
 
 	public void registerTileEntities() {
@@ -206,6 +213,13 @@ public class CommonProxy implements IGuiHandler {
 		Entity entity1 = null;
 		if (y == -1) {
 			entity1 = getEntity(world, x);
+		}
+
+		for (IGuiHandler handler : devGuiHandlers) {
+			Object gui = handler.getServerGuiElement(ID, player, world, x, y, z);
+			if (gui != null) {
+				return gui;
+			}
 		}
 
 		switch (ID) {
