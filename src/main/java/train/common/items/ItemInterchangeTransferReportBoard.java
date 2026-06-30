@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import train.common.Traincraft;
 import train.common.library.Info;
@@ -15,6 +16,9 @@ import java.util.List;
 
 public class ItemInterchangeTransferReportBoard extends Item
 {
+    public static final String NBT_RAILROAD_NAME = "railroadName";
+    public static final String DEFAULT_RAILROAD_NAME = "YOUR RAILROAD HERE";
+
     public static String railroadName;
     public static String railroadAlias;
 
@@ -26,18 +30,36 @@ public class ItemInterchangeTransferReportBoard extends Item
         setCreativeTab(Traincraft.tcTab);
     }
 
-    //public void readFromNBT(NBTTagCompound nbt)
-    //{
-    //    railroadName = nbt.getString("railroadName");
-    //    railroadAlias = nbt.getString("railroadAlias");
-    //}
-//
-    //public NBTTagCompound writeToNBT(NBTTagCompound nbt)
-    //{
-    //    nbt.setString("railroadName", railroadName);
-    //    nbt.setString("railroadAlias", railroadAlias);
-    //    return nbt;
-    //}
+    public static String getRailroadName(ItemStack stack)
+    {
+        if (stack != null && stack.hasTagCompound() && stack.getTagCompound().hasKey(NBT_RAILROAD_NAME))
+        {
+            String value = stack.getTagCompound().getString(NBT_RAILROAD_NAME);
+            if (value != null && value.trim().length() > 0)
+            {
+                return value;
+            }
+        }
+
+        return DEFAULT_RAILROAD_NAME;
+    }
+
+    public static void setRailroadName(ItemStack stack, String railroadName)
+    {
+        if (stack == null)
+        {
+            return;
+        }
+
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null)
+        {
+            tag = new NBTTagCompound();
+            stack.setTagCompound(tag);
+        }
+
+        tag.setString(NBT_RAILROAD_NAME, railroadName == null ? "" : railroadName);
+    }
 
     //@Override
     //public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int par7, float par8, float par9, float par10)
@@ -92,6 +114,7 @@ public class ItemInterchangeTransferReportBoard extends Item
     public void addInformation(ItemStack par1ItemStack, EntityPlayer par2EntityPlayer, List list, boolean par4)
     {
         list.add("\u00a77" + "Creates a railroad Interchange Transfer Report");
+        list.add("\u00a77" + "Railroad: " + getRailroadName(par1ItemStack));
         //list.add("\u00a77" + "Railroad: " + railroadName);
         //list.add("\u00a77" + "RailroadAlias: " + railroadAlias);
     }

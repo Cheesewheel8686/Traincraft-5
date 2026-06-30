@@ -134,6 +134,8 @@ public class PacketHandler
 
 
 		Traincraft.interchangeChannel.registerMessage(PacketClientSideEvent.Handler.class, PacketClientSideEvent.class, 25, Side.CLIENT);
+		Traincraft.interchangeChannel.registerMessage(PacketInterchangeReportGui.Handler.class, PacketInterchangeReportGui.class, 36, Side.CLIENT);
+		Traincraft.interchangeChannel.registerMessage(PacketInterchangeReportBoardSettings.Handler.class, PacketInterchangeReportBoardSettings.class, 37, Side.SERVER);
 
 		Traincraft.lockoutCommChannel.registerMessage(PacketLockoutAddUserToSkinGroup.Handler.class, PacketLockoutAddUserToSkinGroup.class, 26, Side.SERVER);
 		Traincraft.lockoutCommChannel.registerMessage(PacketLockoutBookRequest.Handler.class, PacketLockoutBookRequest.class, 32, Side.SERVER);

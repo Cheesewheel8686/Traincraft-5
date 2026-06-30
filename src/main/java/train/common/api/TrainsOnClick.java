@@ -6,16 +6,22 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
-import train.common.core.network.PacketClientSideEvent;
+import train.common.core.network.PacketInterchangeReportGui;
+import train.common.items.ItemInterchangeTransferReportBoard;
 import train.common.items.ItemPaintbrushThing;
 import train.common.library.GuiIDs;
 import train.common.utils.InterchangeTransferReportGenerator;
 import train.common.Traincraft;
 import train.common.core.network.PacketParkingBrake;
 import train.common.library.ItemIDs;
+import train.common.utils.interchangetransferreport.InterchangeTransferReportGenerator.InterchangeReportDraft;
+
+import java.util.HashMap;
 
 public class TrainsOnClick
 {
+	private static final long INTERCHANGE_REPORT_COOLDOWN_MS = 3000L;
+	private static final int INTERCHANGE_REPORT_MAX_ROWS = 256;
 
 	public boolean onClickWithStake(AbstractTrains train, ItemStack itemstack, EntityPlayer playerEntity, World world) {
 		if (itemstack != null && itemstack.getItem() == ItemIDs.stake.item && !world.isRemote &&
@@ -175,9 +181,27 @@ public class TrainsOnClick
 				Boolean isRemote = world.isRemote;
 				if (isRemote == false)
 				{
-					PostChatMessage(entityPlayer, "Creating Interchange Report");
-					Traincraft.interchangeChannel.sendTo(new PacketClientSideEvent(new InterchangeTransferReportGenerator().GenerateInterchangeTransferReport("YOUR RAILROAD HERE", abstractTrain.trainHandler, false)), (EntityPlayerMP) entityPlayer);
-					PostChatMessage(entityPlayer, "Completed Interchange Report");
+					if (!canOpenInterchangeReport(entityPlayer))
+					{
+						PostChatMessage(entityPlayer, "Please wait before opening another report");
+						return true;
+					}
+
+					if (abstractTrain.trainHandler.getTrains().size() > INTERCHANGE_REPORT_MAX_ROWS)
+					{
+						PostChatMessage(entityPlayer, "Interchange report is too large to open");
+						return true;
+					}
+
+					InterchangeReportDraft draft = new InterchangeTransferReportGenerator().CreateInterchangeTransferDraft(ItemInterchangeTransferReportBoard.getRailroadName(itemstack), abstractTrain.trainHandler, false);
+					draft.boardSlot = entityPlayer.inventory.currentItem;
+					if (draft.rows.size() > INTERCHANGE_REPORT_MAX_ROWS)
+					{
+						PostChatMessage(entityPlayer, "Interchange report is too large to open");
+						return true;
+					}
+
+					PostChatMessage(entityPlayer, "Opening Interchange Report");
 				}
 
 				return true;
@@ -187,6 +211,19 @@ public class TrainsOnClick
 		return false;
 	}
 
+	private boolean canOpenInterchangeReport(EntityPlayer entityPlayer)
+	{
+		String key = entityPlayer.getUniqueID() != null ? entityPlayer.getUniqueID().toString() : entityPlayer.getDisplayName();
+		long now = System.currentTimeMillis();
+		Long lastOpen = interchangeReportLastOpen.get(key);
+		if (lastOpen != null && now - lastOpen < INTERCHANGE_REPORT_COOLDOWN_MS)
+		{
+			return false;
+		}
+
+		interchangeReportLastOpen.put(key, now);
+		return true;
+	}
 	private void PostChatMessage(EntityPlayer entityPlayer, String message)
 	{
 		entityPlayer.addChatMessage(new ChatComponentText(message));

@@ -60,6 +60,8 @@ public class GuiTCTextField extends Gui {
 	private int selectionEnd;
 	private int enabledColor = 14737632;
 	private int disabledColor = 7368816;
+	private boolean drawTextShadow = true;
+	private int textYOffset;
 
 	/** True if this textbox is visible */
 	private boolean visible = true;
@@ -428,7 +430,7 @@ public class GuiTCTextField extends Gui {
 			boolean flag = j >= 0 && j <= s.length();
 			boolean flag1 = this.isFocused && this.cursorCounter / 6 % 2 == 0 && flag;
 			int l = this.enableBackgroundDrawing ? this.xPos + 4 : this.xPos;
-			int i1 = this.enableBackgroundDrawing ? this.yPos + (this.height - 8) / 2 : this.yPos;
+			int i1 = (this.enableBackgroundDrawing ? this.yPos + (this.height - 8) / 2 : this.yPos) + this.textYOffset;
 			int j1 = l;
 
 			if (k > s.length()) {
@@ -437,7 +439,7 @@ public class GuiTCTextField extends Gui {
 
 			if (s.length() > 0) {
 				String s1 = flag ? s.substring(0, j) : s;
-				j1 = this.fontRenderer.drawStringWithShadow(s1, l, i1, i);
+				j1 = this.drawText(s1, l, i1, i);
 			}
 
 			boolean flag2 = this.cursorPosition < this.text.length() || this.text.length() >= this.getMaxStringLength();
@@ -452,7 +454,7 @@ public class GuiTCTextField extends Gui {
 			}
 
 			if (s.length() > 0 && flag && j < s.length()) {
-				this.fontRenderer.drawStringWithShadow(s.substring(j), j1, i1, i);
+				this.drawText(s.substring(j), j1, i1, i);
 			}
 
 			if (flag1) {
@@ -460,7 +462,7 @@ public class GuiTCTextField extends Gui {
 					Gui.drawRect(k1, i1 - 1, k1 + 1, i1 + 1 + this.fontRenderer.FONT_HEIGHT, -3092272);
 				}
 				else {
-					this.fontRenderer.drawStringWithShadow("_", k1, i1, i);
+					this.drawText("_", k1, i1, i);
 				}
 			}
 
@@ -469,6 +471,15 @@ public class GuiTCTextField extends Gui {
 				this.drawCursorVertical(k1, i1 - 1, l1 - 1, i1 + 1 + this.fontRenderer.FONT_HEIGHT);
 			}
 		}
+	}
+
+	private int drawText(String text, int x, int y, int color) {
+		if (this.drawTextShadow) {
+			return this.fontRenderer.drawStringWithShadow(text, x, y, color);
+		}
+
+		this.fontRenderer.drawString(text, x, y, color, false);
+		return x + this.fontRenderer.getStringWidth(text);
 	}
 
 	/**
@@ -545,6 +556,14 @@ public class GuiTCTextField extends Gui {
 	 */
 	public void setTextColor(int par1) {
 		this.enabledColor = par1;
+	}
+
+	public void setDrawTextShadow(boolean drawTextShadow) {
+		this.drawTextShadow = drawTextShadow;
+	}
+
+	public void setTextYOffset(int textYOffset) {
+		this.textYOffset = textYOffset;
 	}
 
 	public void setDisabledTextColour(int par1) {
