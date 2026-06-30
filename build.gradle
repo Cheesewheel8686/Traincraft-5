@@ -37,13 +37,36 @@ configFile.withReader {
 }
 
 
-version = "3.2.1"
+version = "3.2.1.1"
 group= "src.train" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "Fox-Traincraft"
 
 configurations {
     shade
     compile.extendsFrom shade
+    devCompile.extendsFrom compile
+    devRuntime.extendsFrom runtime
+}
+
+sourceSets {
+    dev {
+        java.srcDir 'src/dev/java'
+        resources.srcDir 'src/dev/resources'
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+compileDevJava {
+    sourceCompatibility = targetCompatibility = "1.8"
+}
+
+compileJava.finalizedBy compileDevJava
+
+tasks.withType(JavaExec) { task ->
+    if (task.name.toLowerCase().contains("run")) {
+        classpath += sourceSets.dev.output
+    }
 }
 
 minecraft {
@@ -196,6 +219,7 @@ task devJar(type: Jar) {
 	manifest {}
 	classifier = 'dev'
 	from sourceSets.main.output
+	from sourceSets.dev.output
 }
 
 artifacts {
