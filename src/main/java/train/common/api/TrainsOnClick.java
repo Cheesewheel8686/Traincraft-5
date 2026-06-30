@@ -10,18 +10,20 @@ import train.common.core.network.PacketInterchangeReportGui;
 import train.common.items.ItemInterchangeTransferReportBoard;
 import train.common.items.ItemPaintbrushThing;
 import train.common.library.GuiIDs;
-import train.common.utils.InterchangeTransferReportGenerator;
+import train.common.utils.interchangetransferreport.InterchangeTransferReportGenerator;
 import train.common.Traincraft;
 import train.common.core.network.PacketParkingBrake;
 import train.common.library.ItemIDs;
 import train.common.utils.interchangetransferreport.InterchangeTransferReportGenerator.InterchangeReportDraft;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class TrainsOnClick
 {
 	private static final long INTERCHANGE_REPORT_COOLDOWN_MS = 3000L;
 	private static final int INTERCHANGE_REPORT_MAX_ROWS = 256;
+	private static final Map<String, Long> interchangeReportLastOpen = new HashMap<String, Long>();
 
 	public boolean onClickWithStake(AbstractTrains train, ItemStack itemstack, EntityPlayer playerEntity, World world) {
 		if (itemstack != null && itemstack.getItem() == ItemIDs.stake.item && !world.isRemote &&
@@ -202,6 +204,7 @@ public class TrainsOnClick
 					}
 
 					PostChatMessage(entityPlayer, "Opening Interchange Report");
+					Traincraft.interchangeChannel.sendTo(new PacketInterchangeReportGui(draft), (EntityPlayerMP) entityPlayer);
 				}
 
 				return true;
@@ -224,6 +227,7 @@ public class TrainsOnClick
 		interchangeReportLastOpen.put(key, now);
 		return true;
 	}
+
 	private void PostChatMessage(EntityPlayer entityPlayer, String message)
 	{
 		entityPlayer.addChatMessage(new ChatComponentText(message));
