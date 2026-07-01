@@ -64,7 +64,9 @@ public class PacketCargoSelection implements IMessage {
                 rollingStockEntity = Minecraft.getMinecraft().theWorld.getEntityByID(message.entityID);
             }
             if (rollingStockEntity instanceof EntityRollingStock) {
-                ((EntityRollingStock) rollingStockEntity).getCargoManager().setSelectedCargo(message.cargoSelection);
+                if (((EntityRollingStock) rollingStockEntity).getCargoManager().isValidCargoSelection(message.cargoSelection)) {
+                    ((EntityRollingStock) rollingStockEntity).getCargoManager().setSelectedCargo(message.cargoSelection);
+                }
             }
             return null;
         }

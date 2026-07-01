@@ -788,7 +788,7 @@ public abstract class ItemAbstractRollingStock extends ItemMinecart implements I
                     rollingStock.trainNote = trainNote;
                     rollingStock.importTrustedListFromNBT(var5);
                     if (var5.hasKey("cargoSelection")) {
-                        if (var5.getInteger("cargoSelection") < rollingStock.getCargoManager().getCargoSpecificationList().length + 1)
+                        if (rollingStock.getCargoManager().isValidCargoSelection(var5.getInteger("cargoSelection")))
                             rollingStock.getCargoManager().setSelectedCargo(var5.getInteger("cargoSelection"));
                     }
                     if (var5.hasKey("overlayTextureConfigTag")) // Import overlay configuration from NBT and apply it to the entity.

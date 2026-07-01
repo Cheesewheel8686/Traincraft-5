@@ -279,7 +279,7 @@ public abstract class Locomotive extends EntityRollingStock implements IInventor
         isLocoTurnedOn = additionalData.readBoolean();
         if (additionalData.readBoolean()) {
             int selectedCargo = additionalData.readInt();
-            if (selectedCargo < getCargoManager().getCargoSpecificationList().length + 1)
+            if (getCargoManager().isValidCargoSelection(selectedCargo))
                 getCargoManager().setSelectedCargo(selectedCargo);
         }
     }

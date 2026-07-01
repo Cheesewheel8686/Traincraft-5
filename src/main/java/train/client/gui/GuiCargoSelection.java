@@ -52,7 +52,7 @@ public class GuiCargoSelection extends GuiAbstractPaintbrush {
             renderEntities[i] = Traincraft.traincraftRegistry.getEntity(fakeTrain.getEntityClass(), Minecraft.getMinecraft().theWorld);
         /* Need to re-run these even after calling super because cargo uses selectedOption for current page
          and super() uses selectedOption - 1. */
-        currentPage = getSelectedOption() / RESULTS_PER_PAGE;
+        currentPage = getSelectedCargoOptionIndex() / RESULTS_PER_PAGE;
         hasNextPage = optionsOnCurrentPage + RESULTS_PER_PAGE * currentPage < totalOptions;
         optionsOnCurrentPage = Math.min(RESULTS_PER_PAGE, totalOptions - currentPage * RESULTS_PER_PAGE);
     }
@@ -69,8 +69,9 @@ public class GuiCargoSelection extends GuiAbstractPaintbrush {
         this.renderModelsButton.visible = true;
         this.renderModelsButton.showButton = true;
         this.renderModelsButton.setType(renderModels ? GuiButtonPaintbrushMenu.Type.STOPRENDER : GuiButtonPaintbrushMenu.Type.PLAY, renderModelsButton.getTexture());
-        if (currentPage == (getSelectedOption() / RESULTS_PER_PAGE)) { // If overlay is on current page, set the selected overlay to active and the rest to inactive.
-            int numberOfActiveOverlayInGUI = getSelectedOption() % RESULTS_PER_PAGE; // Which button corresponds to the active overlay...
+        int selectedCargoOptionIndex = getSelectedCargoOptionIndex();
+        if (currentPage == (selectedCargoOptionIndex / RESULTS_PER_PAGE)) { // If overlay is on current page, set the selected overlay to active and the rest to inactive.
+            int numberOfActiveOverlayInGUI = selectedCargoOptionIndex % RESULTS_PER_PAGE; // Which button corresponds to the active overlay...
             for (int i = 3; i < 11; i++) {
                 if (buttonList.get(i) instanceof GuiButtonPaintbrushMenu) {
                     if (i - 3 == numberOfActiveOverlayInGUI) {
@@ -89,7 +90,7 @@ public class GuiCargoSelection extends GuiAbstractPaintbrush {
         }
         for (int i = 0; i < optionsOnCurrentPage; i++) { // Update render entities.
             renderEntities[i].setColor(rollingStock.getColor());
-            renderEntities[i].getCargoManager().setSelectedCargo(i + RESULTS_PER_PAGE * currentPage);
+            renderEntities[i].getCargoManager().setSelectedCargo(getCargoSelectionForOptionIndex(i + RESULTS_PER_PAGE * currentPage));
         }
     }
 
@@ -153,11 +154,12 @@ public class GuiCargoSelection extends GuiAbstractPaintbrush {
             final int fontColor = new Color(0, 0, 0).getRGB();
             String optionName;
             for (int i = 0; i < optionsOnCurrentPage; i++) {
-                if (i == 0 && currentPage == 0) {
+                int cargoNumber = getCargoSelectionForOptionIndex(i + RESULTS_PER_PAGE * currentPage);
+                if (cargoNumber == 0) {
                     optionName = StatCollector.translateToLocal("paintbrushmenu.No Cargo.name");
 
                 } else {
-                    optionName = rollingStock.getCargoManager().getCargoSpecificationList()[i - 1 + RESULTS_PER_PAGE * currentPage][0].textureName;
+                    optionName = rollingStock.getCargoManager().getCargoSpecificationList()[cargoNumber - 1][0].textureName;
                 }
                 fontRendererObj.drawSplitString(optionName, (int) ((offsetX + 14) - (0.5 * fontRendererObj.splitStringWidth(optionName, 82))), (int) offsetY, 82, fontColor);
                 offsetX += 94;
@@ -173,10 +175,11 @@ public class GuiCargoSelection extends GuiAbstractPaintbrush {
         for (int i = 0; i < optionsOnCurrentPage; i++) {
             loopButton = ((GuiButtonPaintbrushMenu) buttonList.get(i + 3));
             if (mouseX > loopButton.xPosition && mouseX < loopButton.xPosition + loopButton.width && mouseY > loopButton.yPosition && mouseY < loopButton.yPosition + loopButton.height)
-                if (i == 0 && currentPage == 0) {
+                if (getCargoSelectionForOptionIndex(i + RESULTS_PER_PAGE * currentPage) == 0) {
                     drawHoveringText(Collections.singletonList(StatCollector.translateToLocal("paintbrushmenu.No Cargo.name")), mouseX, mouseY, fontRendererObj);
                 } else {
-                    drawHoveringText(Collections.singletonList(rollingStock.getCargoManager().getCargoSpecificationList()[i - 1 + RESULTS_PER_PAGE * currentPage][0].textureName), mouseX, mouseY, fontRendererObj);
+                    int cargoNumber = getCargoSelectionForOptionIndex(i + RESULTS_PER_PAGE * currentPage);
+                    drawHoveringText(Collections.singletonList(rollingStock.getCargoManager().getCargoSpecificationList()[cargoNumber - 1][0].textureName), mouseX, mouseY, fontRendererObj);
                 }
         }
         if (playPauseButton.getTexture() == GuiButtonPaintbrushMenu.Texture.ACTIVE) {
@@ -199,7 +202,7 @@ public class GuiCargoSelection extends GuiAbstractPaintbrush {
 
     @Override
     public void selectAndSendUpdatePacket(int choice) {
-        int cargoNumber = (currentPage * RESULTS_PER_PAGE) + (choice - 3);
+        int cargoNumber = getCargoSelectionForOptionIndex((currentPage * RESULTS_PER_PAGE) + (choice - 3));
         // Send an update packet to the server of cargo change.
         // We don't actually change the texture on the client yet; we let the server know we changed it.
         // After the server recognizes that we changed it, it will send an update packet out to all clients.
@@ -214,13 +217,22 @@ public class GuiCargoSelection extends GuiAbstractPaintbrush {
 
     @Override
     public int getTotalOptions() {
-        // Needs to be + 1 to account for the "no cargo" option.
-        return rollingStock.getCargoManager().getCargoSpecificationList().length + 1;
+        int unselectedOption = rollingStock.getCargoManager().isUnselectedSlotEnabled() ? 1 : 0;
+        return rollingStock.getCargoManager().getCargoSpecificationList().length + unselectedOption;
     }
 
     @Override
     public int getSelectedOption() {
-        return rollingStock.getCargoManager().getSelectedCargo();
+        return getSelectedCargoOptionIndex();
+    }
+
+    private int getSelectedCargoOptionIndex() {
+        int selectedCargo = rollingStock.getCargoManager().getSelectedCargo();
+        return rollingStock.getCargoManager().isUnselectedSlotEnabled() ? selectedCargo : Math.max(0, selectedCargo - 1);
+    }
+
+    private int getCargoSelectionForOptionIndex(int optionIndex) {
+        return rollingStock.getCargoManager().isUnselectedSlotEnabled() ? optionIndex : optionIndex + 1;
     }
 
     @Override

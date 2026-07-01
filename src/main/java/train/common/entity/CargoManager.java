@@ -14,6 +14,7 @@ import train.common.api.AbstractTrains;
 public class CargoManager {
     private int selectedCargo = 0;
     private int defaultOverride = -1;
+    private boolean unselectedSlotEnabled = true;
 
     public int GetDefaultOverride()
     {
@@ -38,6 +39,27 @@ public class CargoManager {
         return this;
     }
 
+    public CargoManager disableUnselectedSlot()
+    {
+        this.unselectedSlotEnabled = false;
+        this.defaultOverride = 1;
+        if (selectedCargo == 0) {
+            setSelectedCargo(defaultOverride);
+        }
+        return this;
+    }
+
+    public boolean isUnselectedSlotEnabled()
+    {
+        return unselectedSlotEnabled;
+    }
+
+    public boolean isValidCargoSelection(int selectedCargo)
+    {
+        int minimumSelection = unselectedSlotEnabled ? 0 : 1;
+        return selectedCargo >= minimumSelection && selectedCargo < getCargoSpecificationList().length + 1;
+    }
+
     public CargoSpecification[][] getCargoSpecificationList() {
         return cargoSpecificationList;
     }
@@ -48,6 +70,9 @@ public class CargoManager {
     }
 
     public void setSelectedCargo(int selectedCargo) {
+        if (!isValidCargoSelection(selectedCargo)) {
+            return;
+        }
         this.selectedCargo = selectedCargo;
 
         // Clear old cache whenever the selected cargo changes.
