@@ -38,13 +38,16 @@ public class GuiRollingStockIconGenerator extends GuiContainer {
 	private static final String GENERATE_64_TOOLTIP = "Writes a smaller 64x64 PNG.";
 	private static final String GENERATE_32_TOOLTIP = "Writes a compact 32x32 PNG.";
 
-	// Each setting row owns a minus and plus button. Row 6 is the preview background color.
-	private static final int SETTING_ROW_COUNT = 7;
+	// Each setting row owns a minus and plus button. Row 6 is the preview background, row 7 is cargo selection.
+	private static final int SETTING_ROW_COUNT = 8;
 	private static final int NUMERIC_SETTING_COUNT = 6;
 	private static final int SETTING_BUTTONS_PER_ROW = 2;
 	private static final int PREVIEW_BG_ROW = 6;
 	private static final int PREVIEW_BG_MINUS_BUTTON = PREVIEW_BG_ROW * SETTING_BUTTONS_PER_ROW;
 	private static final int PREVIEW_BG_PLUS_BUTTON = PREVIEW_BG_MINUS_BUTTON + 1;
+	private static final int CARGO_ROW = 7;
+	private static final int CARGO_MINUS_BUTTON = CARGO_ROW * SETTING_BUTTONS_PER_ROW;
+	private static final int CARGO_PLUS_BUTTON = CARGO_MINUS_BUTTON + 1;
 
 	// Pixel layout for the dev table. These values only affect this debug GUI surface.
 	private static final int PANEL_WIDTH = 340;
@@ -55,9 +58,9 @@ public class GuiRollingStockIconGenerator extends GuiContainer {
 	private static final int CONTROL_ROW_HEIGHT = 18;
 	private static final int EMPTY_MESSAGE_X = 16;
 	private static final int EMPTY_MESSAGE_Y = 84;
-	private static final int STATUS_Y = 152;
-	private static final int BUTTON_Y = 166;
-	private static final int FIT_BUTTON_Y = 188;
+	private static final int STATUS_Y = 170;
+	private static final int BUTTON_Y = 184;
+	private static final int FIT_BUTTON_Y = 206;
 	private static final int SMALL_BUTTON_WIDTH = 18;
 	private static final int SMALL_BUTTON_HEIGHT = 14;
 	private static final int ACTION_BUTTON_HEIGHT = 18;
@@ -181,6 +184,14 @@ public class GuiRollingStockIconGenerator extends GuiContainer {
 		}
 
 		int color = GeneratedRollingStockIconRenderer.getRenderColor(stack, record);
+		if (button.id == CARGO_MINUS_BUTTON || button.id == CARGO_PLUS_BUTTON) {
+			if (settings == null) {
+				settings = getAutoFitDefaultSettings(stack, record);
+			}
+			adjustCargoSelection(stack, button.id == CARGO_PLUS_BUTTON ? 1 : -1);
+			return;
+		}
+
 		if (button.id == BUTTON_LOAD) {
 			if (!RollingStockIconDevData.hasSettings(record, color)) {
 				settings = getAutoFitDefaultSettings(stack, record);
@@ -348,6 +359,7 @@ public class GuiRollingStockIconGenerator extends GuiContainer {
 			drawSetting(4, "Screen Y", settings.screenY);
 			drawSetting(5, "Model Off", settings.modelOffset);
 			drawTextSetting(6, "Preview BG", getPreviewBackgroundName());
+			drawTextSetting(7, "Cargo", getCargoSelectionName(getRollingStockStack()));
 		} else if (getRollingStockStack() != null) {
 			if (status.length() == 0) {
 				fontRendererObj.drawString("Values loaded. Preview on edit.", CONTROL_X, STATUS_Y, 0xCCCCCC);
@@ -391,6 +403,44 @@ public class GuiRollingStockIconGenerator extends GuiContainer {
 	private void adjustPreviewBackground(int direction) {
 		previewBackgroundIndex = (previewBackgroundIndex + direction + PREVIEW_BACKGROUND_COLORS.length) % PREVIEW_BACKGROUND_COLORS.length;
 		status = "Preview background updated.";
+	}
+
+	private void adjustCargoSelection(ItemStack stack, int direction) {
+		int cargoOptions = GeneratedRollingStockIconRenderer.getCargoOptionCount(stack);
+		if (cargoOptions <= 0) {
+			settings.cargoSelection = GeneratedRollingStockIconRenderer.CARGO_SELECTION_DEFAULT;
+			status = "No cargo options.";
+			refreshPreview(stack);
+			return;
+		}
+
+		int minSelection = GeneratedRollingStockIconRenderer.CARGO_SELECTION_DEFAULT;
+		int maxSelection = cargoOptions;
+		settings.cargoSelection += direction;
+		if (settings.cargoSelection > maxSelection) {
+			settings.cargoSelection = minSelection;
+		} else if (settings.cargoSelection < minSelection) {
+			settings.cargoSelection = maxSelection;
+		}
+		refreshPreview(stack);
+		status = "Cargo: " + getCargoSelectionName(stack);
+	}
+
+	private String getCargoSelectionName(ItemStack stack) {
+		if (settings == null) {
+			return "";
+		}
+		if (settings.cargoSelection == GeneratedRollingStockIconRenderer.CARGO_SELECTION_DEFAULT) {
+			return "Default";
+		}
+		if (settings.cargoSelection == GeneratedRollingStockIconRenderer.CARGO_SELECTION_NONE) {
+			return "None";
+		}
+		int cargoOptions = GeneratedRollingStockIconRenderer.getCargoOptionCount(stack);
+		if (cargoOptions > 0) {
+			return settings.cargoSelection + "/" + cargoOptions;
+		}
+		return Integer.toString(settings.cargoSelection);
 	}
 
 	private void applyAutoFit(ItemStack stack, int buttonId) {

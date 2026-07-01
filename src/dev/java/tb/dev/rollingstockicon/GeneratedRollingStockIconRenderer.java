@@ -12,6 +12,7 @@ import train.client.render.RenderRollingStock;
 import train.common.Traincraft;
 import train.common.api.AbstractTrains;
 import train.common.api.EntityRollingStock;
+import train.common.entity.CargoManager;
 import train.common.library.register.ITrainRecord;
 
 import java.awt.AlphaComposite;
@@ -73,6 +74,8 @@ public class GeneratedRollingStockIconRenderer {
 	public static final float DEFAULT_ICON_BOGIE_OFFSET_MULTIPLIER = 0.2F;
 	public static final float DEFAULT_ICON_SCREEN_X_OFFSET = 0.0F;
 	public static final float DEFAULT_ICON_SCREEN_Y_OFFSET = 0.0F;
+	public static final int CARGO_SELECTION_DEFAULT = -1;
+	public static final int CARGO_SELECTION_NONE = 0;
 
 	/*
 	 * Identity and defaults
@@ -93,6 +96,21 @@ public class GeneratedRollingStockIconRenderer {
 	public static CaptureSettings getDefaultSettings(ITrainRecord record) {
 		float scale = getBaseIconScale(record) * DEFAULT_SCALE_MULTIPLIER;
 		return new CaptureSettings(DEFAULT_ICON_YAW, DEFAULT_ICON_PITCH, scale, DEFAULT_ICON_SCREEN_X_OFFSET, DEFAULT_ICON_SCREEN_Y_OFFSET, DEFAULT_ICON_BOGIE_OFFSET_MULTIPLIER);
+	}
+
+	public static int getCargoOptionCount(ItemStack stack) {
+		if (stack == null) {
+			return 0;
+		}
+
+		ITrainRecord record = Traincraft.traincraftRegistry.getCurrentTrain(stack.getItem());
+		if (record == null) {
+			return 0;
+		}
+
+		AbstractTrains train = getTemporaryTrain(record);
+		CargoManager cargoManager = train == null ? null : train.getCargoManager();
+		return cargoManager == null ? 0 : cargoManager.getCargoSpecificationList().length;
 	}
 
 	public static String getIconBaseName(ITrainRecord record) {
@@ -134,7 +152,7 @@ public class GeneratedRollingStockIconRenderer {
 			return null;
 		}
 
-		return captureIcon(record, getRenderColor(stack, record), settings, autoFrameFront);
+		return captureIcon(record, getRenderColor(stack, record), settings, autoFrameFront, stack);
 	}
 
 	public static CaptureResult captureIcon(ITrainRecord record, int color, CaptureSettings settings) {
@@ -142,12 +160,16 @@ public class GeneratedRollingStockIconRenderer {
 	}
 
 	public static CaptureResult captureIcon(ITrainRecord record, int color, CaptureSettings settings, boolean autoFrameFront) {
+		return captureIcon(record, color, settings, autoFrameFront, null);
+	}
+
+	private static CaptureResult captureIcon(ITrainRecord record, int color, CaptureSettings settings, boolean autoFrameFront, ItemStack stack) {
 		Minecraft minecraft = Minecraft.getMinecraft();
 		if (minecraft.theWorld == null || !OpenGlHelper.isFramebufferEnabled()) {
 			return null;
 		}
 
-		AbstractTrains train = Traincraft.traincraftRegistry.getEntity(record.getEntityClass(), minecraft.theWorld);
+		AbstractTrains train = getTemporaryTrain(record);
 		if (train == null) {
 			return null;
 		}
@@ -158,6 +180,7 @@ public class GeneratedRollingStockIconRenderer {
 		train.trainType = record.getTrainType();
 		train.trainName = getItemDisplayName(record.getItem());
 		prepareTrainForIconCapture(train);
+		applyCargoSelectionForIconCapture(train, stack, settings);
 
 		Framebuffer framebuffer = null;
 		boolean pushedState = false;
@@ -228,6 +251,43 @@ public class GeneratedRollingStockIconRenderer {
 				GL11.glPopAttrib();
 			}
 			resetGuiGlState();
+		}
+	}
+
+	private static AbstractTrains getTemporaryTrain(ITrainRecord record) {
+		Minecraft minecraft = Minecraft.getMinecraft();
+		return minecraft.theWorld == null ? null : Traincraft.traincraftRegistry.getEntity(record.getEntityClass(), minecraft.theWorld);
+	}
+
+	private static void applyCargoSelectionForIconCapture(AbstractTrains train, ItemStack stack, CaptureSettings settings) {
+		CargoManager cargoManager = train.getCargoManager();
+		if (cargoManager == null) {
+			return;
+		}
+
+		/*
+		 * Real placed entities apply CargoManager default overrides during spawn setup.
+		 * Icon capture uses a temporary unspawned entity, so mirror that visible default here.
+		 * Manual table settings win first, then stack NBT, then the entity default override.
+		 */
+		if (settings != null && settings.cargoSelection != CARGO_SELECTION_DEFAULT) {
+			setCargoSelectionIfValid(cargoManager, settings.cargoSelection);
+			return;
+		}
+
+		if (stack != null && stack.hasTagCompound() && stack.getTagCompound().hasKey("cargoSelection")) {
+			setCargoSelectionIfValid(cargoManager, stack.getTagCompound().getInteger("cargoSelection"));
+			return;
+		}
+
+		if (cargoManager.GetDefaultOverride() != -1) {
+			setCargoSelectionIfValid(cargoManager, cargoManager.GetDefaultOverride());
+		}
+	}
+
+	private static void setCargoSelectionIfValid(CargoManager cargoManager, int selectedCargo) {
+		if (selectedCargo >= 0 && selectedCargo < cargoManager.getCargoSpecificationList().length + 1) {
+			cargoManager.setSelectedCargo(selectedCargo);
 		}
 	}
 
@@ -557,14 +617,21 @@ public class GeneratedRollingStockIconRenderer {
 		public float screenX;
 		public float screenY;
 		public float modelOffset;
+		// DEFAULT uses stack/default cargo state; NONE forces an empty cargo render; 1..N selects a cargo option.
+		public int cargoSelection;
 
 		public CaptureSettings(float yaw, float pitch, float scale, float screenX, float screenY, float modelOffset) {
+			this(yaw, pitch, scale, screenX, screenY, modelOffset, CARGO_SELECTION_DEFAULT);
+		}
+
+		public CaptureSettings(float yaw, float pitch, float scale, float screenX, float screenY, float modelOffset, int cargoSelection) {
 			this.yaw = yaw;
 			this.pitch = pitch;
 			this.scale = scale;
 			this.screenX = screenX;
 			this.screenY = screenY;
 			this.modelOffset = modelOffset;
+			this.cargoSelection = cargoSelection;
 		}
 
 		public CaptureSettings(float yaw, float pitch, float scale, float scaleMultiplier, float screenX, float screenY, float modelOffset) {
@@ -573,7 +640,7 @@ public class GeneratedRollingStockIconRenderer {
 		}
 
 		public CaptureSettings copy() {
-			return new CaptureSettings(yaw, pitch, scale, screenX, screenY, modelOffset);
+			return new CaptureSettings(yaw, pitch, scale, screenX, screenY, modelOffset, cargoSelection);
 		}
 	}
 

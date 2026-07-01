@@ -94,7 +94,8 @@ public class RollingStockIconDevData {
 					getFloat(json, "scale", defaults.scale) * getFloat(json, "scaleMultiplier", 1.0F),
 					getFloat(json, "screenX", defaults.screenX),
 					getFloat(json, "screenY", defaults.screenY),
-					getFloat(json, "modelOffset", defaults.modelOffset)
+					getFloat(json, "modelOffset", defaults.modelOffset),
+					getInt(json, "cargoSelection", defaults.cargoSelection)
 			);
 		} catch (Exception ignored) {
 			return defaults;
@@ -126,6 +127,7 @@ public class RollingStockIconDevData {
 		json.addProperty("screenX", settings.screenX);
 		json.addProperty("screenY", settings.screenY);
 		json.addProperty("modelOffset", settings.modelOffset);
+		json.addProperty("cargoSelection", settings.cargoSelection);
 
 		FileWriter writer = null;
 		try {
@@ -225,5 +227,9 @@ public class RollingStockIconDevData {
 
 	private static float getFloat(JsonObject json, String key, float fallback) {
 		return json.has(key) ? json.get(key).getAsFloat() : fallback;
+	}
+
+	private static int getInt(JsonObject json, String key, int fallback) {
+		return json.has(key) ? json.get(key).getAsInt() : fallback;
 	}
 }
