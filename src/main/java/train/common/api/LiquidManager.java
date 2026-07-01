@@ -199,10 +199,10 @@ public class LiquidManager {
 			int used = tank.fill(ForgeDirection.UNKNOWN,bucketLiquid, false);
 			if (used >= bucketLiquid.amount) {
 				tank.fill(ForgeDirection.UNKNOWN,bucketLiquid, true);
+				inventory.decrStackSize(inventoryIndex, 1);
 				if (itemstack.getItem() == Items.potionitem){
 					return new ItemStack(Items.glass_bottle, 1);
 				}
-				inventory.decrStackSize(inventoryIndex, 1);
 				return emptyItem;
 			}
 		}
