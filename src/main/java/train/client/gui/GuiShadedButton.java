@@ -77,14 +77,14 @@ public class GuiShadedButton extends GuiButton {
 		drawRect(xPosition + 1, yPosition + height / 2, xPosition + width - 1, yPosition + height - 1, bottom);
 		drawRect(xPosition + 1, yPosition + 1, xPosition + width - 1, yPosition + 2, TOP_HIGHLIGHT);
 		drawRect(xPosition + 1, yPosition + height - 2, xPosition + width - 1, yPosition + height - 1, BOTTOM_SHADOW);
-		drawCenteredString(minecraft.fontRenderer, displayString, xPosition + width / 2, yPosition + (height - 8) / 2, enabled ? WHITE : DISABLED_TEXT);
+		drawCenteredString(minecraft.fontRenderer, displayString, xPosition + width / 2, yPosition + (height - 8) / 2, getTextColor());
 	}
 
 	private void drawDangerButton(Minecraft minecraft, boolean hovered) {
 		int background = hovered ? DANGER_HOVER_BACKGROUND : DANGER_BACKGROUND;
 		drawRect(xPosition, yPosition, xPosition + width, yPosition + height, DANGER_BORDER);
 		drawRect(xPosition + 1, yPosition + 1, xPosition + width - 1, yPosition + height - 1, background);
-		drawCenteredString(minecraft.fontRenderer, displayString, xPosition + width / 2, yPosition + (height - 8) / 2, enabled ? WHITE : DISABLED_TEXT);
+		drawCenteredString(minecraft.fontRenderer, displayString, xPosition + width / 2, yPosition + (height - 8) / 2, getTextColor());
 	}
 
 	private void drawCustomButton(Minecraft minecraft, boolean hovered) {
@@ -93,7 +93,14 @@ public class GuiShadedButton extends GuiButton {
 		drawRect(xPosition + 1, yPosition + 1, xPosition + width - 1, yPosition + height - 1, enabled ? background : DISABLED_BORDER);
 		drawRect(xPosition + 1, yPosition + 1, xPosition + width - 1, yPosition + 2, TOP_HIGHLIGHT);
 		drawRect(xPosition + 1, yPosition + height - 2, xPosition + width - 1, yPosition + height - 1, BOTTOM_SHADOW);
-		drawCenteredString(minecraft.fontRenderer, displayString, xPosition + width / 2, yPosition + (height - 8) / 2, enabled ? WHITE : DISABLED_TEXT);
+		drawCenteredString(minecraft.fontRenderer, displayString, xPosition + width / 2, yPosition + (height - 8) / 2, getTextColor());
+	}
+
+	private int getTextColor() {
+		if (!enabled) {
+			return DISABLED_TEXT;
+		}
+		return packedFGColour != 0 ? packedFGColour : WHITE;
 	}
 
 	private static int opaque(int red, int green, int blue) {

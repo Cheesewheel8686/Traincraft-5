@@ -43,6 +43,7 @@ public class GUIAdminBook extends GuiScreen
     private static final int BUTTON_CLONE_AND_DELETE = 3;
     private static final int BUTTON_TOGGLE_HANDLED = 4;
     private static final int BUTTON_STOP_CHUNK_LOADING = 5;
+    private static final int BUTTON_LOAD_RESTORE = 8;
     private static final int BUTTON_TOGGLE_ROW_HANDLED_BASE = 10000;
     private static final int BUTTON_OPEN_ROW_BASE = 20000;
     private static final String EMPTY_PAGE = "!empty";
@@ -141,6 +142,11 @@ public class GUIAdminBook extends GuiScreen
                 toggleHandled(getCurrentStockPath());
                 initGui();
                 break;
+            case BUTTON_LOAD_RESTORE:
+                if(list[0]!=null && list[0].length()>1) {
+                    Traincraft.keyChannel.sendToServer(new PacketAdminBookClient("2:" + list[0].substring(1), Minecraft.getMinecraft().thePlayer.getEntityId()));
+                }
+                break;
             case BUTTON_STOP_CHUNK_LOADING:
                 Traincraft.toggleChunkLoadingChannel.sendToServer(new PacketAdminBookToggleChunkLoading(false));//tell server to drop items
             break;
@@ -221,7 +227,9 @@ public class GUIAdminBook extends GuiScreen
             int buttonX = rowLeft + (column * (openWidth + 10));
             GuiButton button = shadedButton(BUTTON_OPEN_ROW_BASE + i, buttonX, rowTop + (row * ROW_HEIGHT), openWidth, 20, label);
 
-            if (drawingPlayerList && !searchQuery.equals("") && path.startsWith(searchQuery.toLowerCase())) {
+            if (drawingPlayerList && !searchQuery.equals("") && i == searchIndex) {
+                button.packedFGColour = 0xFFFF55;
+            } else if (drawingPlayerList && !searchQuery.equals("") && isPlayerSearchMatch(path, searchQuery.toLowerCase())) {
                 button.packedFGColour = 7855479;
             }
 
@@ -248,7 +256,27 @@ public class GUIAdminBook extends GuiScreen
         }
 
         this.buttonList.add(dangerButton(BUTTON_STOP_CHUNK_LOADING, guiLeft + getPanelWidth() - 200, guiTop + PANEL_HEIGHT + 6,
-                190, 20, "Stop ALL Locomotive Chunk Loading"));
+                190, 20, "Release ALL TC Chunk Tickets"));
+    }
+
+    private void initEscrowButtons() {
+        int footerY = guiTop + PANEL_HEIGHT - 28;
+        this.buttonList.add(shadedButton(BUTTON_BACK, guiLeft + 10, footerY, 54, 20, "back"));
+        this.buttonList.add(shadedButton(BUTTON_REFRESH_ESCROW, guiLeft + getPanelWidth() - 80, footerY, 70, 20, "refresh"));
+
+        List<EscrowRecord> records = getEscrowRecords();
+        int start = ROWS_PER_PAGE * page;
+        int end = Math.min(start + ROWS_PER_PAGE, records.size());
+        for (int i = start; i < end; i++) {
+            int row = i - start;
+            EscrowRecord record = records.get(i);
+            this.buttonList.add(coloredButton(BUTTON_RECOVER_ESCROW_BASE + record.index,
+                    guiLeft + getPanelWidth() - 142, guiTop + 51 + (row * ROW_HEIGHT), 64, 16, "to user",
+                    ESCROW_RECOVER_COLOR, ESCROW_RECOVER_HOVER_COLOR));
+            this.buttonList.add(coloredButton(BUTTON_COLLECT_ESCROW_BASE + record.index,
+                    guiLeft + getPanelWidth() - 74, guiTop + 51 + (row * ROW_HEIGHT), 64, 16, "to admin",
+                    ESCROW_COLLECT_COLOR, ESCROW_COLLECT_HOVER_COLOR));
+        }
     }
 
     private void initStockButtons() {
@@ -258,6 +286,7 @@ public class GUIAdminBook extends GuiScreen
         this.buttonList.add(shadedButton(BUTTON_CLONE_INVENTORY, guiLeft + 154, footerY, 98, 20, "clone inventory"));
         this.buttonList.add(dangerButton(BUTTON_CLONE_AND_DELETE, guiLeft + 258, footerY, 92, 20, "clone & delete"));
         this.buttonList.add(shadedButton(BUTTON_TOGGLE_HANDLED, guiLeft + 356, footerY, 54, 20, getHandledLabel(getCurrentStockPath())));
+        this.buttonList.add(shadedButton(BUTTON_LOAD_RESTORE, guiLeft + 154, footerY - 22, 98, 20, "load restore"));
     }
 
     private GuiButton shadedButton(int id, int x, int y, int width, int height, String label) {
@@ -396,7 +425,15 @@ public class GUIAdminBook extends GuiScreen
             }
         }
         int width = isPlayerList() ? ((getPanelWidth() - 30) / PLAYER_COLUMNS) - 8 : getPanelWidth() - 28;
-        return fontRendererObj.trimStringToWidth(entry, width);
+        return fontRendererObj.trimStringToWidth(getPathDisplayName(entry), width);
+    }
+
+    private String getPathDisplayName(String entry) {
+        if (entry.startsWith("backup:")) {
+            entry = entry.substring("backup:".length());
+        }
+        int separator = Math.max(entry.lastIndexOf("/"), entry.lastIndexOf("\\"));
+        return separator >= 0 ? entry.substring(separator + 1) : entry;
     }
 
     private String getRowUuid(String entry) {
@@ -603,7 +640,7 @@ public class GUIAdminBook extends GuiScreen
             return;
         }
         if (!isTrainPage && !isEscrowPage) {
-            if (isCloseKey(eventKey)) { // If "ESC" or inventory key, exit from the GUI.
+            if (isEscapeKey(eventKey)) { // If "ESC", exit from the GUI.
                 if (searchQuery.isEmpty()) { // If search query is empty, exit.
                     this.mc.displayGuiScreen(null);
                     this.mc.setIngameFocus();
@@ -612,6 +649,9 @@ public class GUIAdminBook extends GuiScreen
                     searchQuery = "";
                     searchIndex = 0;
                 }
+            } else if (isEnterKey(eventChar, eventKey)) {
+                searchIndex = getPlayerSearchResultIndex();
+                openPlayerSearchResult();
             } else if (eventChar != '\u0000') { // If character is not a modifier key...
                 if (eventChar == '\b') { // If character is backspace...
                     searchQuery = searchQuery.substring(0, Math.max(0, searchQuery.length() - 1));
@@ -622,17 +662,69 @@ public class GUIAdminBook extends GuiScreen
                 else { // If character is not a backspace...
                     searchQuery += Character.toString(eventChar);
                 }
-                searchIndex = Arrays.binarySearch(list, searchQuery.toLowerCase());
-                if (searchIndex < 0) {
-                    searchIndex = Math.abs(searchIndex) - 1;
+                searchIndex = getPlayerSearchResultIndex();
+                if (searchIndex >= 0) {
+                    setPage(searchIndex / getEntriesPerPage());
                 }
-                setPage(searchIndex / getEntriesPerPage());
             }
             initGui();
         }
     }
 
+    private boolean isEnterKey(char eventChar, int eventKey) {
+        return eventChar == '\r' || eventChar == '\n' || eventKey == Keyboard.KEY_RETURN || eventKey == Keyboard.KEY_NUMPADENTER;
+    }
+
+    private boolean isEscapeKey(int eventKey) {
+        return eventKey == 1;
+    }
+
+    private void openPlayerSearchResult() {
+        if (searchQuery.length() == 0) {
+            return;
+        }
+        int resultIndex = getPlayerSearchResultIndex();
+        if (resultIndex >= 0 && resultIndex < list.length) {
+            Traincraft.keyChannel.sendToServer(new PacketAdminBookClient(list[resultIndex], Minecraft.getMinecraft().thePlayer.getEntityId()));
+        }
+    }
+
+    private int getPlayerSearchResultIndex() {
+        if (list == null || searchQuery.length() == 0) {
+            return -1;
+        }
+        String lowerQuery = searchQuery.toLowerCase();
+        for (int i = 0; i < list.length; i++) {
+            if (getPlayerSearchText(list[i]).startsWith(lowerQuery)) {
+                return i;
+            }
+        }
+        for (int i = 0; i < list.length; i++) {
+            if (isPlayerSearchMatch(list[i], lowerQuery)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isPlayerSearchMatch(String entry, String lowerQuery) {
+        return getPlayerSearchText(entry).contains(lowerQuery);
+    }
+
+    private String getPlayerSearchText(String entry) {
+        if (entry == null || entry.length() == 0) {
+            return "";
+        }
+        if (entry.startsWith("backup:")) {
+            entry = entry.substring("backup:".length());
+        }
+        int slash = Math.max(entry.lastIndexOf("/"), entry.lastIndexOf("\\"));
+        String name = slash >= 0 ? entry.substring(slash + 1) : entry;
+        return name.toLowerCase();
+    }
+
     private boolean isCloseKey(int eventKey) {
-        return eventKey == 1 || eventKey == this.mc.gameSettings.keyBindInventory.getKeyCode();
+        return isEscapeKey(eventKey);
+    }
     }
 }

@@ -127,6 +127,13 @@ public class BogiePathfinding  extends EntityMinecart implements IMinecart{
 
     @Override
     public void setDead() {
+        /*
+         * Pathfinder entities can allocate Forge entity tickets even though they are not
+         * normal Traincraft rolling stock. Releasing here ensures normal entity removal
+         * also cleans up the ticket instead of relying on AutoTrain completion code to
+         * remember every spawned child pathfinder.
+         */
+        releaseChunkTicket();
         super.setDead();
         System.out.println("DEAD! HAHAHAHA");
     }
@@ -523,7 +530,7 @@ public class BogiePathfinding  extends EntityMinecart implements IMinecart{
                     }
                 }
             }
-            //Do everything else here. yknow, just for testing
+            // Server-side pathfinding work continues here, including chunk-ticket allocation.
             if(this.chunkTicket == null) {
                 this.requestTicket();
             }
@@ -945,6 +952,25 @@ public class BogiePathfinding  extends EntityMinecart implements IMinecart{
     }
     public ForgeChunkManager.Ticket getTicket(){
         return this.chunkTicket;
+    }
+
+    /**
+     * Releases this pathfinder's Forge chunkloading ticket, if one is assigned.
+     *
+     * <p>This method is public so the admin-book emergency purge can clean up loaded
+     * pathfinders directly. BogiePathfinding does not extend {@code AbstractTrains}, so
+     * it is not covered by the locomotive/rolling stock chunkloading flag or by
+     * {@code AbstractTrains#setPacketChunkLoading(boolean)}.</p>
+     *
+     * @return true when a ticket reference was present and Forge release was invoked
+     */
+    public boolean releaseChunkTicket() {
+        if (chunkTicket == null) {
+            return false;
+        }
+        ForgeChunkManager.releaseTicket(chunkTicket);
+        chunkTicket = null;
+        return true;
     }
 
     public void requestTicket() {

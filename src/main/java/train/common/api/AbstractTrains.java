@@ -465,6 +465,24 @@ public abstract class AbstractTrains extends EntityMinecart implements IMinecart
 				//System.out.println("Train is missing an ID, adding new one for "+this.trainName+" "+this.uniqueID);
 			}
 		}
+		/*
+		 * The config switch must be enforced here, not only in the interaction handler.
+		 *
+		 * The chunk loader item is only one way to enable the chunkloading flag. Existing worlds can also
+		 * restore "chunkLoadingState" from NBT, and Forge can restore entity tickets from
+		 * forcedchunks.dat before an admin has a chance to interact with the train. If the
+		 * server owner disables Traincraft chunkloading, every loaded train should release
+		 * any ticket it already has and skip new ticket allocation even when its saved flag
+		 * is still true.
+		 */
+		if (!ConfigHandler.CHUNK_LOADING) {
+			if (chunkTicket != null) {
+				ForgeChunkManager.releaseTicket(chunkTicket);
+				chunkTicket = null;
+			}
+			shouldChunkLoad = false;
+			return;
+		}
 		shouldChunkLoad = getFlag(7);
 		if (shouldChunkLoad){
 			if(this.chunkTicket == null) {
