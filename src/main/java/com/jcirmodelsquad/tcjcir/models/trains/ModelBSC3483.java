@@ -1112,7 +1112,7 @@ public class ModelBSC3483 extends ModelConverter //Same as Filename
 	{
 		ModelRenderHelper.renderModelWithStandardFreightRollingStock(bodyModel, entity, f5);
 
-		if(((AbstractTrains) entity).getColor() == 5 || ((AbstractTrains) entity).getColor() == 1623){
+		if(((AbstractTrains) entity).getColor() == 2135 || ((AbstractTrains) entity).getColor() == 1623){
 			Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/70Ton_Greyish.png"));
 		} else {
 			Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/70Ton_Black.png"));
