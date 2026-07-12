@@ -2161,6 +2161,7 @@ public enum RenderEnum implements ITrainRenderRecord, ISubTrainRenderRecord
 	OreJenny(OreJenny.class, new ModelOreJenny(),"orejenny_", true,  new float[]{-0F, 0.1F, 0F}, new float[] { 0F, 180F, 180F }, null, "", 0, null, "", null, 0, false),
 	PRRGLaHopper(PRRGLaHopper.class, new ModelPRRGLaHopper(),"PRR_GLa_hopper_", true, new float[]{0F, 0.15F, 0F}, new float[] { 0F, 180F, 180F }, null, "", 0, null, "", null, 0, false),
 	ACF41Gon(ACF41Gon.class, new ModelACF41Gon(),"acf_41-6_gon_", true, new float[]{-0F, 0.15F, 0F}, new float[] { 0F, 180F, 180F }, null, "", 0, null, "", null, 0, false),
+	BSC3483(BSC3483.class, new ModelBSC3483(),"BSC_3483_", true, new float[]{-0F, 0.15F, 0F}, new float[] { 0F, 180F, 180F }, null, "", 0, null, "", null, 0, false),
 	BethgonII(BethgonII.class, new ModelBethgonII(),"Bethgon_", true, new float[]{-0F, 0.15F, 0F}, new float[] { 0F, 180F, 180F }, null, "", 0, null, "", null, 0, false),
 	gsco67millgon(gsco67millgon.class, new Model67millgon(),"gsco_67_millgon_", true, new float[]{-0F, 0.15F, 0F}, new float[] { 0F, 180F, 180F }, null, "", 0, null, "", null, 0, false),
 	gsco52millgon(gsco52millgon.class, new Modelgsco52millgon(),"gsco_52_millgon_", true, new float[]{-0F, 0.15F, 0F}, new float[] { 0F, 180F, 180F }, null, "", 0, null, "", null, 0, false),

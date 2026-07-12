@@ -708,6 +708,7 @@ public enum ItemIDs {
 	minecartOreJenny("ItemRollingStock", "orejenny", FREIGHT, 2),
 	minecartPRRGLaHopper("ItemRollingStock", "PRRGLaHopper", FREIGHT, 2),
 	minecartACF41Gon("ItemRollingStock", "ACF_41_6_gon", FREIGHT, 3),
+	minecartBSC3483("ItemRollingStock", "icon_BSC_3483", FREIGHT, 4),
 	minecartBethgonII("ItemRollingStock", "Bethgon_icon", FREIGHT, 5),
 	minecart67millgon("ItemRollingStock", "gsco_67millgon_icon", FREIGHT, 4),
 	minecart52millgon("ItemRollingStock", "gsco_52millgon_icon", FREIGHT, 4),

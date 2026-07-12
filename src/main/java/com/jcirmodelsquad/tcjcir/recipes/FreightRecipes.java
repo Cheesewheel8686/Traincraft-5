@@ -12,6 +12,10 @@ public class FreightRecipes extends AbstractRecipeHandler
 {
     public FreightRecipes(ITierCraftingManager cm)
     {
+
+        //BSC 3483
+        cm.addRecipe(2, SteelIngot(3), new ItemStack(ItemIDs.freightCarTruck.item, 2), new ItemStack(ItemIDs.steelframe.item, 2), new ItemStack(ItemIDs.hopperBay.item, 3), new ItemStack(ItemIDs.freightCarRibbing.item, 3), null, null, SteelIngot(2), new ItemStack(Blocks.hopper, 2), BLACK_DYE, new ItemStack(ItemIDs.minecartBSC3483.item, 1), 1);
+
         cm.addRecipe(1, getAnyPlankType(6), new ItemStack(ItemIDs.archbarTruck.item, 2), new ItemStack(ItemIDs.steelframe.item, 3), new ItemStack(Items.stick, 4), null, null, null, getAnyPlankType(2), getAnyLogType(2), null, new ItemStack(ItemIDs.minecartEarlyFlat.item, 1), 1);
         cm.addRecipe(1, null, new ItemStack(ItemIDs.woodenBogie.item, 2), new ItemStack(ItemIDs.ironFrame.item, 1), new ItemStack(Items.iron_ingot, 2), null, null, new ItemStack(Blocks.mossy_cobblestone, 1), null, null, null, new ItemStack(ItemIDs.minecartBoulderWagon.item, 1), 1);
         cm.addRecipe(2, SteelIngot(3), new ItemStack(ItemIDs.freightCarTruck.item, 2), new ItemStack(ItemIDs.steelframe.item, 2), SteelIngot(2), new ItemStack(Blocks.planks, 3), null, new ItemStack(ItemIDs.boxcarDoor.item, 2), null, new ItemStack(Blocks.chest, 2), BROWN_DYE, new ItemStack(ItemIDs.minecartPS140.item, 1), 1);

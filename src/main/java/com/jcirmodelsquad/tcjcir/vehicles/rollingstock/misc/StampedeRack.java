@@ -14,8 +14,6 @@ public class StampedeRack extends AbstractPassengerCar
 		InsertTexture(2, "");
 	}
 
-
-
 	@Override
 	public boolean interactFirst(EntityPlayer entityplayer) {
 		playerEntity = entityplayer;
