@@ -30,6 +30,7 @@ public class DieselDash840C extends DieselTrain {
         InsertTexture(9, "Morristown Tenneva & Southern");
         InsertTexture(10, "FURRX");
         InsertTexture(11, "GCM", train.common.enums.LockoutGroup.GCM); 
+        InsertTexture(12, "ITBR");
     }
 
     @Override
@@ -38,17 +39,8 @@ public class DieselDash840C extends DieselTrain {
         return "US";
     }
 
-
     @Override
     public void updateRiderPosition() { TraincraftUtil.updateRider(this, 4.05, 0.3, -0.35); }
-
-
-
-
-
-
-
-
 
     @Override
     public float getOptimalDistance(EntityMinecart cart) { return 1.35F;
@@ -63,8 +55,5 @@ public class DieselDash840C extends DieselTrain {
     public String getInventoryName() {
         return "GE C40-8";
     }
-
-
-    
 
 }
