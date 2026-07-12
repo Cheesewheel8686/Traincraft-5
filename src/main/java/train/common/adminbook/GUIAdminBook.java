@@ -726,5 +726,5 @@ public class GUIAdminBook extends GuiScreen
     private boolean isCloseKey(int eventKey) {
         return isEscapeKey(eventKey);
     }
-    }
+
 }
