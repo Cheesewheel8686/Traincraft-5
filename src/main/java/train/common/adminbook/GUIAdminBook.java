@@ -6,6 +6,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 import tmt.Tessellator;
 import train.client.gui.GuiShadedButton;
@@ -43,10 +44,18 @@ public class GUIAdminBook extends GuiScreen
     private static final int BUTTON_CLONE_AND_DELETE = 3;
     private static final int BUTTON_TOGGLE_HANDLED = 4;
     private static final int BUTTON_STOP_CHUNK_LOADING = 5;
+    private static final int BUTTON_CONTAINER_ESCROW = 6;
+    private static final int BUTTON_REFRESH_ESCROW = 7;
     private static final int BUTTON_LOAD_RESTORE = 8;
     private static final int BUTTON_TOGGLE_ROW_HANDLED_BASE = 10000;
     private static final int BUTTON_OPEN_ROW_BASE = 20000;
+    private static final int BUTTON_RECOVER_ESCROW_BASE = 30000;
+    private static final int BUTTON_COLLECT_ESCROW_BASE = 40000;
     private static final String EMPTY_PAGE = "!empty";
+    private static final int ESCROW_RECOVER_COLOR = 0xFF2D6F38;
+    private static final int ESCROW_RECOVER_HOVER_COLOR = 0xFF3F9850;
+    private static final int ESCROW_COLLECT_COLOR = 0xFF6B4A26;
+    private static final int ESCROW_COLLECT_HOVER_COLOR = 0xFF926537;
     private static final Set<String> handledStock = new HashSet<String>();
 
     private String[] list;
