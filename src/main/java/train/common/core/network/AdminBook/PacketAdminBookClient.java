@@ -479,103 +479,103 @@ public class PacketAdminBookClient implements IMessage
             return null;
         }
 
-        private static void handleContainerEscrow(PacketAdminBookClient message, MessageContext context)
-        {
-            EntityPlayerMP admin = context.getServerHandler().playerEntity;
-            if (admin == null || !admin.canCommandSenderUseCommand(2, ""))
-            {
-                return;
-            }
+        //private static void handleContainerEscrow(PacketAdminBookClient message, MessageContext context)
+        //{
+        //    EntityPlayerMP admin = context.getServerHandler().playerEntity;
+        //    if (admin == null || !admin.canCommandSenderUseCommand(2, ""))
+        //    {
+        //        return;
+        //    }
+//
+        //    String status = "";
+        //    if (message.id.startsWith("tc_container_escrow_collect:"))
+        //    {
+        //        status = collectEscrowRecord(admin, message.id.substring("tc_container_escrow_collect:".length()));
+        //    }
+        //    else if (message.id.startsWith("tc_container_escrow_recover:"))
+        //    {
+        //        status = recoverEscrowRecord(admin, message.id.substring("tc_container_escrow_recover:".length()));
+        //    }
+        //    sendContainerEscrowPage(admin, status);
+        //}
 
-            String status = "";
-            if (message.id.startsWith("tc_container_escrow_collect:"))
-            {
-                status = collectEscrowRecord(admin, message.id.substring("tc_container_escrow_collect:".length()));
-            }
-            else if (message.id.startsWith("tc_container_escrow_recover:"))
-            {
-                status = recoverEscrowRecord(admin, message.id.substring("tc_container_escrow_recover:".length()));
-            }
-            sendContainerEscrowPage(admin, status);
-        }
-
-        private static String recoverEscrowRecord(EntityPlayerMP admin, String recordToken)
-        {
-            int index;
-            try
-            {
-                index = Integer.parseInt(recordToken);
-            }
-            catch (NumberFormatException ignored)
-            {
-                return "Invalid escrow record.";
-            }
-
-            ContainerDeathEscrowData data = ContainerDeathEscrowData.get(admin.worldObj);
-            List<ContainerDeathEscrowData.Record> records = data.getAllRecords();
-            if (index < 0 || index >= records.size())
-            {
-                return "Escrow record no longer exists.";
-            }
-
-            ContainerDeathEscrowData.Record record = records.get(index);
-            EntityPlayerMP target = findOnlinePlayer(record.playerName);
-            if (target == null || !target.getUniqueID().equals(record.playerId))
-            {
-                return "Player " + record.playerName + " must be online to receive this container.";
-            }
-
-            ItemStack stack = record.stack.copy();
-            if (!ContainerCustody.canCarryAnotherContainer(target, stack) || !target.inventory.addItemStackToInventory(stack))
-            {
-                return "Could not recover for " + record.playerName + ". They need space and cannot already carry a loaded container.";
-            }
-
-            data.remove(record);
-            target.inventoryContainer.detectAndSendChanges();
-            ContainerCustody.sendEscrowLog(target, PacketContainerEscrowLog.ACTION_RECOVERED, record.dimensionId, record.x, record.y, record.z, 1);
-            ContainerCustody.sendEscrowWaypoints(target);
-            target.addChatMessage(new net.minecraft.util.ChatComponentText("An admin recovered a loaded container from death escrow into your inventory."));
-            return "Recovered container for " + record.playerName + ".";
-        }
-
-        private static String collectEscrowRecord(EntityPlayerMP admin, String recordToken)
-        {
-            int index;
-            try
-            {
-                index = Integer.parseInt(recordToken);
-            }
-            catch (NumberFormatException ignored)
-            {
-                return "Invalid escrow record.";
-            }
-
-            ContainerDeathEscrowData data = ContainerDeathEscrowData.get(admin.worldObj);
-            List<ContainerDeathEscrowData.Record> records = data.getAllRecords();
-            if (index < 0 || index >= records.size())
-            {
-                return "Escrow record no longer exists.";
-            }
-
-            ContainerDeathEscrowData.Record record = records.get(index);
-            ItemStack stack = record.stack.copy();
-            if (!ContainerCustody.canCarryAnotherContainer(admin, stack) || !admin.inventory.addItemStackToInventory(stack))
-            {
-                return "Could not collect record for " + record.playerName + ". You need space and cannot already carry a loaded container.";
-            }
-
-            data.remove(record);
-            admin.inventoryContainer.detectAndSendChanges();
-            ContainerCustody.sendEscrowWaypoints(admin);
-            EntityPlayerMP target = findOnlinePlayer(record.playerName);
-            if (target != null && target.getUniqueID().equals(record.playerId))
-            {
-                ContainerCustody.sendEscrowWaypoints(target);
-                target.addChatMessage(new net.minecraft.util.ChatComponentText("An admin collected one of your loaded containers from death escrow."));
-            }
-            return "Collected container for " + record.playerName + " into your inventory.";
-        }
+        //private static String recoverEscrowRecord(EntityPlayerMP admin, String recordToken)
+        //{
+        //    int index;
+        //    try
+        //    {
+        //        index = Integer.parseInt(recordToken);
+        //    }
+        //    catch (NumberFormatException ignored)
+        //    {
+        //        return "Invalid escrow record.";
+        //    }
+//
+        //    ContainerDeathEscrowData data = ContainerDeathEscrowData.get(admin.worldObj);
+        //    List<ContainerDeathEscrowData.Record> records = data.getAllRecords();
+        //    if (index < 0 || index >= records.size())
+        //    {
+        //        return "Escrow record no longer exists.";
+        //    }
+//
+        //    ContainerDeathEscrowData.Record record = records.get(index);
+        //    EntityPlayerMP target = findOnlinePlayer(record.playerName);
+        //    if (target == null || !target.getUniqueID().equals(record.playerId))
+        //    {
+        //        return "Player " + record.playerName + " must be online to receive this container.";
+        //    }
+//
+        //    ItemStack stack = record.stack.copy();
+        //    if (!ContainerCustody.canCarryAnotherContainer(target, stack) || !target.inventory.addItemStackToInventory(stack))
+        //    {
+        //        return "Could not recover for " + record.playerName + ". They need space and cannot already carry a loaded container.";
+        //    }
+//
+        //    data.remove(record);
+        //    target.inventoryContainer.detectAndSendChanges();
+        //    ContainerCustody.sendEscrowLog(target, PacketContainerEscrowLog.ACTION_RECOVERED, record.dimensionId, record.x, record.y, record.z, 1);
+        //    ContainerCustody.sendEscrowWaypoints(target);
+        //    target.addChatMessage(new net.minecraft.util.ChatComponentText("An admin recovered a loaded container from death escrow into your inventory."));
+        //    return "Recovered container for " + record.playerName + ".";
+        //}
+//
+        //private static String collectEscrowRecord(EntityPlayerMP admin, String recordToken)
+        //{
+        //    int index;
+        //    try
+        //    {
+        //        index = Integer.parseInt(recordToken);
+        //    }
+        //    catch (NumberFormatException ignored)
+        //    {
+        //        return "Invalid escrow record.";
+        //    }
+//
+        //    ContainerDeathEscrowData data = ContainerDeathEscrowData.get(admin.worldObj);
+        //    List<ContainerDeathEscrowData.Record> records = data.getAllRecords();
+        //    if (index < 0 || index >= records.size())
+        //    {
+        //        return "Escrow record no longer exists.";
+        //    }
+//
+        //    ContainerDeathEscrowData.Record record = records.get(index);
+        //    ItemStack stack = record.stack.copy();
+        //    if (!ContainerCustody.canCarryAnotherContainer(admin, stack) || !admin.inventory.addItemStackToInventory(stack))
+        //    {
+        //        return "Could not collect record for " + record.playerName + ". You need space and cannot already carry a loaded container.";
+        //    }
+//
+        //    data.remove(record);
+        //    admin.inventoryContainer.detectAndSendChanges();
+        //    ContainerCustody.sendEscrowWaypoints(admin);
+        //    EntityPlayerMP target = findOnlinePlayer(record.playerName);
+        //    if (target != null && target.getUniqueID().equals(record.playerId))
+        //    {
+        //        ContainerCustody.sendEscrowWaypoints(target);
+        //        target.addChatMessage(new net.minecraft.util.ChatComponentText("An admin collected one of your loaded containers from death escrow."));
+        //    }
+        //    return "Collected container for " + record.playerName + " into your inventory.";
+        //}
 
         private static EntityPlayerMP findOnlinePlayer(String playerName)
         {
@@ -597,34 +597,34 @@ public class PacketAdminBookClient implements IMessage
             return null;
         }
 
-        public static void sendContainerEscrowPage(EntityPlayerMP admin, String status)
-        {
-            ContainerDeathEscrowData data = ContainerDeathEscrowData.get(admin.worldObj);
-            List<ContainerDeathEscrowData.Record> records = data.getAllRecords();
-            StringBuilder sb = new StringBuilder();
-            sb.append("!containerEscrow,");
-            sb.append(clean(status));
-            for (int i = 0; i < records.size(); i++)
-            {
-                ContainerDeathEscrowData.Record record = records.get(i);
-                sb.append(",");
-                sb.append(clean(record.playerName));
-                sb.append("|").append(i);
-                sb.append("|").append(record.dimensionId);
-                sb.append("|").append(format(record.x));
-                sb.append("|").append(format(record.y));
-                sb.append("|").append(format(record.z));
-                sb.append("|").append(record.timestamp);
-                sb.append("|").append(clean(getContainerNumber(record.stack)));
-                sb.append("|").append(record.playerId == null ? "" : record.playerId.toString());
-            }
-            Traincraft.keyChannel.sendTo(new PacketAdminBook(1, -1, sb.toString()), admin);
-        }
-
-        private static String getContainerNumber(ItemStack stack)
-        {
-            return UniversalContainerNBT.getContainerNumber(stack);
-        }
+        //public static void sendContainerEscrowPage(EntityPlayerMP admin, String status)
+        //{
+        //    ContainerDeathEscrowData data = ContainerDeathEscrowData.get(admin.worldObj);
+        //    List<ContainerDeathEscrowData.Record> records = data.getAllRecords();
+        //    StringBuilder sb = new StringBuilder();
+        //    sb.append("!containerEscrow,");
+        //    sb.append(clean(status));
+        //    for (int i = 0; i < records.size(); i++)
+        //    {
+        //        ContainerDeathEscrowData.Record record = records.get(i);
+        //        sb.append(",");
+        //        sb.append(clean(record.playerName));
+        //        sb.append("|").append(i);
+        //        sb.append("|").append(record.dimensionId);
+        //        sb.append("|").append(format(record.x));
+        //        sb.append("|").append(format(record.y));
+        //        sb.append("|").append(format(record.z));
+        //        sb.append("|").append(record.timestamp);
+        //        sb.append("|").append(clean(getContainerNumber(record.stack)));
+        //        sb.append("|").append(record.playerId == null ? "" : record.playerId.toString());
+        //    }
+        //    Traincraft.keyChannel.sendTo(new PacketAdminBook(1, -1, sb.toString()), admin);
+        //}
+//
+        //private static String getContainerNumber(ItemStack stack)
+        //{
+        //    return UniversalContainerNBT.getContainerNumber(stack);
+        //}
 
         private static String clean(String value)
         {
