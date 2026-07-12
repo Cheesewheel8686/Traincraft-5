@@ -268,25 +268,25 @@ public class GUIAdminBook extends GuiScreen
                 190, 20, "Release ALL TC Chunk Tickets"));
     }
 
-    private void initEscrowButtons() {
-        int footerY = guiTop + PANEL_HEIGHT - 28;
-        this.buttonList.add(shadedButton(BUTTON_BACK, guiLeft + 10, footerY, 54, 20, "back"));
-        this.buttonList.add(shadedButton(BUTTON_REFRESH_ESCROW, guiLeft + getPanelWidth() - 80, footerY, 70, 20, "refresh"));
-
-        List<EscrowRecord> records = getEscrowRecords();
-        int start = ROWS_PER_PAGE * page;
-        int end = Math.min(start + ROWS_PER_PAGE, records.size());
-        for (int i = start; i < end; i++) {
-            int row = i - start;
-            EscrowRecord record = records.get(i);
-            this.buttonList.add(coloredButton(BUTTON_RECOVER_ESCROW_BASE + record.index,
-                    guiLeft + getPanelWidth() - 142, guiTop + 51 + (row * ROW_HEIGHT), 64, 16, "to user",
-                    ESCROW_RECOVER_COLOR, ESCROW_RECOVER_HOVER_COLOR));
-            this.buttonList.add(coloredButton(BUTTON_COLLECT_ESCROW_BASE + record.index,
-                    guiLeft + getPanelWidth() - 74, guiTop + 51 + (row * ROW_HEIGHT), 64, 16, "to admin",
-                    ESCROW_COLLECT_COLOR, ESCROW_COLLECT_HOVER_COLOR));
-        }
-    }
+    //private void initEscrowButtons() {
+    //    int footerY = guiTop + PANEL_HEIGHT - 28;
+    //    this.buttonList.add(shadedButton(BUTTON_BACK, guiLeft + 10, footerY, 54, 20, "back"));
+    //    this.buttonList.add(shadedButton(BUTTON_REFRESH_ESCROW, guiLeft + getPanelWidth() - 80, footerY, 70, 20, "refresh"));
+//
+    //    List<EscrowRecord> records = getEscrowRecords();
+    //    int start = ROWS_PER_PAGE * page;
+    //    int end = Math.min(start + ROWS_PER_PAGE, records.size());
+    //    for (int i = start; i < end; i++) {
+    //        int row = i - start;
+    //        EscrowRecord record = records.get(i);
+    //        this.buttonList.add(coloredButton(BUTTON_RECOVER_ESCROW_BASE + record.index,
+    //                guiLeft + getPanelWidth() - 142, guiTop + 51 + (row * ROW_HEIGHT), 64, 16, "to user",
+    //                ESCROW_RECOVER_COLOR, ESCROW_RECOVER_HOVER_COLOR));
+    //        this.buttonList.add(coloredButton(BUTTON_COLLECT_ESCROW_BASE + record.index,
+    //                guiLeft + getPanelWidth() - 74, guiTop + 51 + (row * ROW_HEIGHT), 64, 16, "to admin",
+    //                ESCROW_COLLECT_COLOR, ESCROW_COLLECT_HOVER_COLOR));
+    //    }
+    //}
 
     private void initStockButtons() {
         int footerY = guiTop + PANEL_HEIGHT - 28;
