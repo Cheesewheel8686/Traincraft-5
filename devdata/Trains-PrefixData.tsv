@@ -23,6 +23,7 @@ item.tc:minecartAmCafe2	AmCafe2	com.jcirmodelsquad.tcjcir.vehicles.rollingstock.
 item.tc:minecartAmfleet	Amfleet	com.jcirmodelsquad.tcjcir.vehicles.rollingstock.passenger.Amfleet	amfleet_
 item.tc:minecartAmfleet2	Amfleet2	com.jcirmodelsquad.tcjcir.vehicles.rollingstock.passenger.Amfleet2	amfleet2_
 item.tc:minecartAmfleetCab	AmfleetCab	com.jcirmodelsquad.tcjcir.vehicles.rollingstock.passenger.controlcar.AmfleetCab	amfleet_Cabber_
+item.tc:minecartBSC3483	BSC3483	com.jcirmodelsquad.tcjcir.vehicles.rollingstock.freight.BSC3483	BSC_3483_
 item.tc:minecartF7BSlug	F7BSlug	com.jcirmodelsquad.tcjcir.vehicles.locomotives.BUnitF7	Skin_Plane_ThisErrorIsERatedForEveryone
 item.tc:minecartBethgonII	BethgonII	com.jcirmodelsquad.tcjcir.vehicles.rollingstock.freight.BethgonII	Bethgon_
 item.tc:minecartBigMeme	BigMeme	com.jcirmodelsquad.tcjcir.vehicles.locomotives.eletric.BigMeme	bigmeme_

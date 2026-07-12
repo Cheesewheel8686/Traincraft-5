@@ -4781,6 +4781,17 @@ public class RegisterBAPTrains
                             .setAdditionalTooltip(new String[] {"Cargo: Gonstuff"})
             );
 
+            // BSC 3483
+            put(ItemIDs.minecartBSC3483.item,
+                    new TrainRecord("BSC3483", BSC3483.class, ItemIDs.minecartBSC3483.item)
+                            .setTrainType(EnumTrainType.OpenTopHopper)
+                            .setMass(4)
+                            .setColors(new String[] {"Black"})
+                            .setGuiRenderScale(14)
+                            .setCargoCapacity(45)
+                            .setAdditionalTooltip(new String[] {"Cargo: Coal n shid"})
+            );
+
             // BethgonII
             put(ItemIDs.minecartBethgonII.item,
                     new TrainRecord("BethgonII", BethgonII.class, ItemIDs.minecartBethgonII.item)
