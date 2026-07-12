@@ -39,7 +39,21 @@ public class BSC3483 extends AbstractStandardFreightCar
     public void setupTextureDescription()
     {
         InsertTexture(0, "Blandsville & Blankerston");//ModelB(ethgon)S(ethgon)C(ethgon)3483
-        InsertTexture(1, "");
+        InsertTexture(1, "CSX");
+        InsertTexture(2, "SP (DRGW)");
+        InsertTexture(3, "CNW (As-delivered)");
+        InsertTexture(4, "BN(NARS)");
+        InsertTexture(5, "BN");
+        InsertTexture(6, "BN 2");
+        InsertTexture(7, "CNW(repaint)");
+        InsertTexture(8, "CBQ");
+        InsertTexture(9, "CSX (ex-DRGW)");
+        InsertTexture(10, "DRGW (Rockies)");
+        InsertTexture(11, "DRGW");
+        InsertTexture(12, "DRGW 2");
+        InsertTexture(13, "GN");
+        InsertTexture(14, "RBMN");
+
     }
 
     @Override
