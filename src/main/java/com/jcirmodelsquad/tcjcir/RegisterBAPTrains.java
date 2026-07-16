@@ -5276,6 +5276,14 @@ public class RegisterBAPTrains
                             .setGuiRenderScale(12)
             );
 
+            // Pullman 69' Chair Car
+            put(ItemIDs.minecartPullman69ChairCar.item,
+                    new TrainRecord("Pullman 69' Chair Car", Pullman69ChairCar.class, ItemIDs.minecartPullman69ChairCar.item)
+                            .setTrainType(EnumTrainType.Passenger)
+                            .setMass(3)
+                            .setColors(new String[]{"Green", "Lime", "Black", "Grey", "LightGrey", "White", "Red"})
+                            .setGuiRenderScale(12)
+            );
             // PSRPOPM
             put(ItemIDs.minecartPSRPOPM.item,
                     new TrainRecord("PSPMRPO", PSRPOPM.class, ItemIDs.minecartPSRPOPM.item)
