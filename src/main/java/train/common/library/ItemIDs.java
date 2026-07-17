@@ -891,7 +891,7 @@ public enum ItemIDs {
 	minecartHBC1Ccaboose("ItemRollingStock", "HBC1C", BOOSE,3),
 	minecartHBC1Bcaboose("ItemRollingStock", "HBC1B", BOOSE,3),
 	minecartDRGWCaboose("ItemRollingStock", "DRGW_01400_series_caboose", BOOSE,3),
-	minecartICC_Bobber("ItemRollingStock", "icc_bobber_icon", BOOSE,100),
+	minecartICC_Bobber("ItemRollingStock", "icc_bobber_icon", BOOSE,3),
 	minecartICCBaywindowWP("ItemRollingStock", "wp_iccbaywindow_icon", BOOSE,3),
 	minecartCA11("ItemRollingStock", "hop_on_paint_dot_net", BOOSE,3),
 	minecartWPShops600Series("ItemRollingStock", "wp648680_series_icon", BOOSE,3),
