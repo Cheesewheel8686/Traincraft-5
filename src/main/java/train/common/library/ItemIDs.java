@@ -884,7 +884,7 @@ public enum ItemIDs {
 	minecartPEcooch("ItemRollingStock", "pecoach", PASSENGER, 6),
 	minecartPEobserve("ItemRollingStock", "peobserve", PASSENGER, 6),
 
-	minecartPullman69ChairCar("ItemRollingStock", "p69ch", PASSENGER, 67),
+	minecartPullman69ChairCar("ItemRollingStock", "p69ch", PASSENGER, 3),
 
 	//othershizzle//
 	minecartWVcaboose("ItemRollingStock", "wvcaboose", BOOSE,3),
