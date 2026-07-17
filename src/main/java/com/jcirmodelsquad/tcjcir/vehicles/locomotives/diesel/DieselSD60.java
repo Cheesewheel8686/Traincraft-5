@@ -22,7 +22,7 @@ public class DieselSD60 extends DieselTrain {
         InsertTexture(1, "Oakway Lease");
         InsertTexture(2, "CN (Ex Oakway i think?)");
         InsertTexture(3, "Uncle Pete");
-        InsertTexture(4, "NS (Ex Soup)");
+        InsertTexture(4, "NS (SOU order-spec");
         InsertTexture(5, "CR (ohe now thats quality -demoman tf2)");
         InsertTexture(6, "Blandsville & Blanklands Terminal Railroad Association");
         InsertTexture(7, "GLoNT");

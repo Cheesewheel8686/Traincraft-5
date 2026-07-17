@@ -65,4 +65,9 @@ public class ElectricJT7 extends ElectricTrain {
     public boolean isFictional(){
         return true;
     }
+
+    @Override
+    public String transportYear() {
+        return "1948, 1952-1960";
+    }
 }
