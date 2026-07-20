@@ -141,14 +141,14 @@ public class RegisterTrains
 
             put(ItemIDs.minecartGS4_Passenger.item,
                     new TrainRecord("Passenger GS4", EntityPassengerGS4.class, ItemIDs.minecartGS4_Passenger.item, EnumTrainType.Passenger, 1,
-                            new String[]{"Orange", "White", "Yellow", "Brown", "Green", "Lime", "Red", "Grey", "Green", "LightGrey", "Blue", "Black", "LightBlue"},
+                            new String[]{"Orange", "White", "Yellow", "Brown", "Green", "Lime", "Red", "Grey", "Green", "LightGrey", "Blue", "Black", "LightBlue", "Skin17", "Skin18", "Skin19", "Skin20", "Skin21", "Skin22", "Skin23", "Skin24", "Skin25"},
                             11)
             );
 
 
             put(ItemIDs.minecartGS4_Observatory.item,
                     new TrainRecord("Passenger GS4 Observatory", EntityPassengerGS4_Observatory.class, ItemIDs.minecartGS4_Observatory.item, EnumTrainType.Passenger, 1,
-                            new String[]{"Orange", "White", "Yellow", "Brown", "Lime", "Red", "Grey", "Green", "LightGrey", "Black", "LightBlue"},
+                            new String[]{"Orange", "White", "Yellow", "Brown", "Lime", "Red", "Grey", "Green", "LightGrey", "Black", "LightBlue", "Skin17", "Skin18", "Skin19"},
                             11)
             );
 
@@ -495,7 +495,7 @@ public class RegisterTrains
 
             put(ItemIDs.minecartGS4_Baggage.item,
                     new TrainRecord("Freight Cart GS4 Baggage", EntityFreightGS4_Baggage.class, ItemIDs.minecartGS4_Baggage.item, "freight", 1,
-                            new String[]{"Orange", "White", "Yellow", "Brown", "Lime", "Red", "Grey", "Green", "LightGrey", "Black", "LightBlue"},
+                            new String[]{"Orange", "White", "Yellow", "Brown", "Lime", "Red", "Grey", "Green", "LightGrey", "Black", "LightBlue", "Skin17", "Skin18", "Skin19"},
                             11).setCargoCapacity(45).setAdditionalTooltip(new String[]{"Cargo: any"}));
 
             put(ItemIDs.minecartFreightGondola_DB.item,

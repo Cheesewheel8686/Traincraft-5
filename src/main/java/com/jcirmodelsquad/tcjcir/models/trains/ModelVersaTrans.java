@@ -17,6 +17,7 @@ import org.lwjgl.opengl.GL11;
 import tmt.ModelConverter;
 import tmt.ModelRendererTurbo;
 import tmt.Tessellator;
+import train.client.renderhelper.ModelRenderHelper;
 import train.common.api.AbstractTrains;
 import train.common.api.Freight;
 import train.common.library.Info;
@@ -106,7 +107,7 @@ public class ModelVersaTrans extends ModelConverter //Same as Filename
 		bodyModel[63] = new ModelRendererTurbo(this, 2, 2, textureX, textureY); // Box 63
 		bodyModel[64] = new ModelRendererTurbo(this, 2, 5, textureX, textureY); // Box 64
 		bodyModel[65] = new ModelRendererTurbo(this, 355, 34, textureX, textureY); // Box 65
-		bodyModel[66] = new ModelRendererTurbo(this, 343, 2, textureX, textureY); // Box 70 LOAD TILE
+		bodyModel[66] = new ModelRendererTurbo(this, 343, 2, textureX, textureY, "aaa"); // Box 70 LOAD TILE
 		bodyModel[67] = new ModelRendererTurbo(this, 465, 1, textureX, textureY); // Box 72
 		bodyModel[68] = new ModelRendererTurbo(this, 465, 1, textureX, textureY); // Box 73
 		bodyModel[69] = new ModelRendererTurbo(this, 292, 3, textureX, textureY); // Box 74
@@ -345,13 +346,14 @@ public class ModelVersaTrans extends ModelConverter //Same as Filename
 		bodyModel[75].addShapeBox(0F, 0F, 0F, 4, 9, 18, 0F,-2F, 0F, 0F, -2F, 0F, 0F, -2F, 0F, 0F, -2F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F); // Box 80
 		bodyModel[75].setRotationPoint(2F, -8F, -9F);
 	}
-	Model70Truck bogie = new Model70Truck();
+	//Model70Truck bogie = new Model70Truck();
 	Model70TonTruck2 bogie2 = new Model70TonTruck2();
 	@Override
 	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {
 		for (int i = 0; i < 76; i++) {
-			if (i == 66) {
-				int cargo = ((Freight) entity).getAmmountOfCargo();
+			if  (bodyModel[i].boxName != null && bodyModel[i].boxName.contains("aaa")) {
+			//if (i == 66) {
+				/*int cargo = ((Freight) entity).getAmmountOfCargo();
 				if (cargo != 0) {
 					if (cargo <= 9) { //less than or equal to 9 (27, 36, 45, 54) //fix this
 						GL11.glPushMatrix();
@@ -380,7 +382,7 @@ public class ModelVersaTrans extends ModelConverter //Same as Filename
 						bodyModel[66].render(f5);
 						GL11.glPopMatrix();
 					}
-				}
+				}*/
 			} else if (bodyModel[i].boxName != null && bodyModel[i].boxName.contains("cull")) {
 				GL11.glDisable(GL11.GL_CULL_FACE);
 				bodyModel[i].render(f5);
@@ -388,16 +390,7 @@ public class ModelVersaTrans extends ModelConverter //Same as Filename
 			} else
 				bodyModel[i].render(f5);
 		}
-		/*Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/70truck_Black.png"));
 
-		GL11.glPushMatrix();
-		GL11.glScalef(1, 1, 0.9f);
-		GL11.glTranslated(-1.37, 0.55, -0.4);
-		bogie.render(entity, f, f1, f2, f3, f4, f5);
-
-		GL11.glTranslated(2.5, 0, 0.03);
-		bogie.render(entity, f, f1, f2, f3, f4, f5);
-		GL11.glPopMatrix();*/
 		if(GetColor(entity)==3456){
 			Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/70Ton_Greyish.png"));
 		} else {
@@ -410,5 +403,7 @@ public class ModelVersaTrans extends ModelConverter //Same as Filename
 		GL11.glTranslated(2.5,-0.0,0.00);
 		bogie2.render(entity,f,f1,f2,f3,f4,f5);
 		GL11.glPopMatrix();
+
+		((AbstractTrains) entity).getCargoManager().renderCargo((AbstractTrains) entity, f, f1, f2, f3, f4, f5);
 	}
 }

@@ -16,6 +16,9 @@ public class EntityPassengerGS4_Observatory extends AbstractPassengerCar {
 
 	public EntityPassengerGS4_Observatory(World world) {
 		super(world);
+		InsertTexture(11, "GS4-liner (PH2)");
+		InsertTexture(12, "GS4-liner (PH3)");
+		InsertTexture(13, "GS4-liner (PH4)");
 	}
 
 		@Override

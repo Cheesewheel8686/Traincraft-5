@@ -1,24 +1,31 @@
 package com.jcirmodelsquad.tcjcir.vehicles.rollingstock.freight;
 
+import com.jcirmodelsquad.tcjcir.models.loads.Modelwoodchip_hopper_chips;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraft.world.World;
 import train.common.api.AbstractStandardFreightCar;
 import train.common.entity.CargoManager;
+import train.common.entity.CargoSpecification;
 import train.common.enums.CargoItemFilter;
 
 public class WoodchipHopper extends AbstractStandardFreightCar
 {
     public WoodchipHopper(World world) {
         super(world);
-        cargoFilterCategory = CargoItemFilter.WOOD_CHIPS;
+        cargoFilterCategory = CargoItemFilter.WOOD_CHIPS;//woodchiphopper_chips
     }
-
-    
 
     @Override
     public CargoManager setupCargoManager()
     {
-        return null;
+        return new CargoManager(new CargoSpecification[][]
+                {
+                        {new CargoSpecification(Modelwoodchip_hopper_chips.class,
+                                "loads/woodchiphopper_chips", "Woodchips load 1", new CargoSpecification.RenderParameters().setOffset(0.0, 3.0, 0)), },
+                        {new CargoSpecification(Modelwoodchip_hopper_chips.class,
+                                "loads/woodchiphopper_chips2", "Woodchips load 2", new CargoSpecification.RenderParameters().setOffset(0.0, 3.0, 0)), },
+                }
+        );
     }
 
     @Override
@@ -39,7 +46,7 @@ public class WoodchipHopper extends AbstractStandardFreightCar
 
     @Override
     public String getInventoryName() {
-        return "55 Foot Woodchip Hopper";
+        return "Thrall 59' Woodchip Hopper";
     }
 
     @Override

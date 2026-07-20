@@ -1,9 +1,11 @@
 package com.jcirmodelsquad.tcjcir.vehicles.rollingstock.freight;
 
+import com.jcirmodelsquad.tcjcir.models.loads.Modelversaflood_load;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraft.world.World;
 import train.common.api.AbstractStandardFreightCar;
 import train.common.entity.CargoManager;
+import train.common.entity.CargoSpecification;
 import train.common.enums.CargoItemFilter;
 
 public class VersaLongi extends AbstractStandardFreightCar
@@ -16,7 +18,18 @@ public class VersaLongi extends AbstractStandardFreightCar
     @Override
     public CargoManager setupCargoManager()
     {
-        return null;
+        return new CargoManager(new CargoSpecification[][]
+                {
+                        {new CargoSpecification(Modelversaflood_load.class,
+                                "loads/versaflood_load_gravel", "Gravel", new CargoSpecification.RenderParameters().setOffset(0.0, 3.0, 0)), },
+                        {new CargoSpecification(Modelversaflood_load.class,
+                                "loads/versaflood_load_peagravel", "Peagravel", new CargoSpecification.RenderParameters().setOffset(0.0, 3.0, 0)), },
+                        {new CargoSpecification(Modelversaflood_load.class,
+                                "loads/versaflood_load_crushed_marble", "Crushed Marble", new CargoSpecification.RenderParameters().setOffset(0.0, 3.0, 0)), },
+                        {new CargoSpecification(Modelversaflood_load.class,
+                                "loads/versaflood_load_dirt", "Dirt", new CargoSpecification.RenderParameters().setOffset(0.0, 3.0, 0)), },
+                }
+        );
     }
 
     @Override

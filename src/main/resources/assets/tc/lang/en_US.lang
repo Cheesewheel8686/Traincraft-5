@@ -1343,6 +1343,7 @@ item.tc:minecartVersaLongi.name=Versaflood Longitudinal Hopper
 item.tc:minecartVersaTrans.name=Versaflood Transverse Hopper
 item.tc:minecartMillGondola.name=52' Mill Gondola
 item.tc:minecartWoodchipHopper.name=Thrall 59' Woodchip Hopper
+item.tc:minecartFMCWoodchip.name=Gunderson-FMC Woodchip Hopper
 item.tc:minecartOreJenny.name=Ore Jenny
 item.tc:minecartPRRGLaHopper.name= PRR GLa Hopper and clones
 item.tc:minecartACF41Gon.name=AC&F 41' 6" Gondola

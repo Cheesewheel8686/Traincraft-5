@@ -33,8 +33,10 @@ public class DieselRecipes extends AbstractRecipeHandler {
 
         cm.addRecipe(2, new ItemStack(ItemIDs.steelcab.item, 1), new ItemStack(ItemIDs.partBlombergB.item, 2), new ItemStack(ItemIDs.steelframe.item, 2), SteelIngot(3), new ItemStack(ItemIDs.steelchimney.item, 2), new ItemStack(ItemIDs.partComponentEMD.item, 1), new ItemStack(ItemIDs.generator.item, 2), new ItemStack(ItemIDs.dieselengine.item, 3), new ItemStack(ItemIDs.controls.item, 1), BLUE_DYE, new ItemStack(ItemIDs.minecartFP9A.item, 1), 1);
 
+        //CF7s
         cm.addRecipe(2, new ItemStack(ItemIDs.steelcab.item, 2), null, new ItemStack(ItemIDs.steelframe.item, 2), SteelIngot(3), null, new ItemStack(ItemIDs.partComponentEMD.item, 1), new ItemStack(ItemIDs.minecartF7A.item, 1), null, null, YELLOW_DYE, new ItemStack(ItemIDs.minecartCF7angle.item, 1), 1);
         cm.addRecipe(2, new ItemStack(ItemIDs.steelcab.item, 1), null, new ItemStack(ItemIDs.steelframe.item, 2), SteelIngot(3), null, new ItemStack(ItemIDs.partComponentEMD.item, 1), new ItemStack(ItemIDs.minecartF7A.item, 1), null, null, YELLOW_DYE, new ItemStack(ItemIDs.minecartCF7round.item, 1), 1);
+        cm.addRecipe(2, new ItemStack(ItemIDs.partComponentEMD.item, 2), null, new ItemStack(ItemIDs.steelframe.item, 2), SteelIngot(3), null, new ItemStack(ItemIDs.partComponentEMD.item, 1), new ItemStack(ItemIDs.minecartF7B.item, 1), null, null, YELLOW_DYE, new ItemStack(ItemIDs.minecartCF7b.item, 1), 1);
 
         cm.addRecipe(2, new ItemStack(ItemIDs.steelcab.item, 2), null, new ItemStack(ItemIDs.steelframe.item, 2), SteelIngot(3), null, new ItemStack(ItemIDs.partComponentEMD.item, 1), new ItemStack(ItemIDs.minecartE8A.item, 1), null, new ItemStack(ItemIDs.controls.item, 1), CYAN_DYE, new ItemStack(ItemIDs.minecartCE8.item, 1), 1);
 
@@ -95,7 +97,6 @@ public class DieselRecipes extends AbstractRecipeHandler {
 
         //u50
         cm.addRecipe(2, new ItemStack(ItemIDs.steelcab.item, 2), new ItemStack(ItemIDs.partTypeB.item, 4), new ItemStack(ItemIDs.steelframe.item, 6), SteelIngot(3), new ItemStack(ItemIDs.partTurboExhaust.item, 2), new ItemStack(ItemIDs.partComponentGE.item, 6), new ItemStack(ItemIDs.partAlternator.item, 6), new ItemStack(ItemIDs.dieselengine.item, 6), new ItemStack(ItemIDs.controls.item, 1), YELLOW_DYE, new ItemStack(ItemIDs.minecartU50.item, 1), 1);
-
 
         //u56
         cm.addRecipe(2, new ItemStack(ItemIDs.steelcab.item, 2), new ItemStack(ItemIDs.partTypeB.item, 4), new ItemStack(ItemIDs.steelframe.item, 6), SteelIngot(3), new ItemStack(ItemIDs.partTurboExhaust.item, 2), new ItemStack(ItemIDs.partComponentCEE.item, 8), new ItemStack(ItemIDs.partAlternator.item, 6), new ItemStack(ItemIDs.dieselengine.item, 6), new ItemStack(ItemIDs.controls.item, 1), CYAN_DYE, new ItemStack(ItemIDs.minecartU56.item, 1), 1);

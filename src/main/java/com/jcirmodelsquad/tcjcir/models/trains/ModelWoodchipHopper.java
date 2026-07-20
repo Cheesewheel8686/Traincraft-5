@@ -411,12 +411,12 @@ public class ModelWoodchipHopper extends ModelConverter//Same as Filename
 				GL11.glEnable(GL11.GL_CULL_FACE);
 
 			}else if (bodyModel[i].boxName != null && bodyModel[i].boxName.contains("load")) {
-				if (cargo > 0) {
+				/*if (cargo > 0) {
 					bodyModel[i].render(f5);
 				}
 				if (cargo == 0) {
 
-				}
+				}*/
 
 			} else
 
@@ -435,9 +435,8 @@ public class ModelWoodchipHopper extends ModelConverter//Same as Filename
 		GL11.glTranslated(3.73,-0.0,0.00);
 		bogie2.render(entity,f,f1,f2,f3,f4,f5);
 		GL11.glPopMatrix();
-	}
 
-	public void setRotationAngles(float f, float f1, float f2, float f3, float f4, float f5)
-	{ }
-	public ModelRendererTurbo ModelWoodchipHopper[];
+
+		((AbstractTrains) entity).getCargoManager().renderCargo((AbstractTrains) entity, f, f1, f2, f3, f4, f5);
+	}
 }

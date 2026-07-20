@@ -15,6 +15,15 @@ public class EntityPassengerGS4 extends EntityRollingStock implements IPassenger
 
 	public EntityPassengerGS4(World world) {
 		super(world);
+		InsertTexture(13, "GS4-liner (PH2)");
+		InsertTexture(14, "GS4-liner (PH2)");
+		InsertTexture(15, "GS4-liner (PH2)");
+		InsertTexture(16, "GS4-liner (PH3)");
+		InsertTexture(17, "GS4-liner (PH3)");
+		InsertTexture(18, "GS4-liner (PH3)");
+		InsertTexture(19, "GS4-liner (PH4)");
+		InsertTexture(20, "GS4-liner (PH5)");
+		InsertTexture(21, "GS4-liner (PH6)");
 	}
 
 		@Override

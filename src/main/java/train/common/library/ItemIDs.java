@@ -705,6 +705,7 @@ public enum ItemIDs {
 	minecartVersaTrans("ItemRollingStock", "versatrans", FREIGHT, 4),
 	minecartMillGondola("ItemRollingStock", "millgondola", FREIGHT, 4),
 	minecartWoodchipHopper("ItemRollingStock", "woodchiphopper", FREIGHT, 4),
+	minecartFMCWoodchip("ItemRollingStock", "Gunderson_woodchip_gondola", FREIGHT, 4),
 	minecartOreJenny("ItemRollingStock", "orejenny", FREIGHT, 2),
 	minecartPRRGLaHopper("ItemRollingStock", "PRRGLaHopper", FREIGHT, 2),
 	minecartACF41Gon("ItemRollingStock", "ACF_41_6_gon", FREIGHT, 3),

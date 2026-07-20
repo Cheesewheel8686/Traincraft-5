@@ -17,6 +17,7 @@ import org.lwjgl.opengl.GL11;
 import tmt.ModelConverter;
 import tmt.ModelRendererTurbo;
 import tmt.Tessellator;
+import train.client.renderhelper.ModelRenderHelper;
 import train.common.api.AbstractTrains;
 import train.common.api.Freight;
 import train.common.library.Info;
@@ -33,7 +34,6 @@ public class ModelVersaLongi extends ModelConverter //Same as Filename
 		initbodyModel_1();
 
 		translateAll(0F, 0F, 0F);
-
 
 		flipAll();
 	}
@@ -110,7 +110,7 @@ public class ModelVersaLongi extends ModelConverter //Same as Filename
 		bodyModel[67] = new ModelRendererTurbo(this, 396, 39, textureX, textureY); // Box 67
 		bodyModel[68] = new ModelRendererTurbo(this, 383, 39, textureX, textureY); // Box 68
 		bodyModel[69] = new ModelRendererTurbo(this, 400, 51, textureX, textureY); // Box 69
-		bodyModel[70] = new ModelRendererTurbo(this, 343, 2, textureX, textureY); // Box 70 LOAD TILE
+		bodyModel[70] = new ModelRendererTurbo(this, 343, 2, textureX, textureY, "aaa"); // Box 70 LOAD TILE
 
 		bodyModel[0].addBox(0F, 0F, 0F, 3, 2, 3, 0F); // Box 1 coupler
 		bodyModel[0].setRotationPoint(-33F, 2F, -1.5F);
@@ -325,13 +325,14 @@ public class ModelVersaLongi extends ModelConverter //Same as Filename
 		bodyModel[70].addBox(0F, 0F, 0F, 40, 1, 18, 0F); // Box 70 LOAD TILE
 		bodyModel[70].setRotationPoint(-20F, -15F, -9F);
 	}
-	Model70Truck bogie = new Model70Truck();
+	//Model70Truck bogie = new Model70Truck();
 	Model70TonTruck2 bogie2 = new Model70TonTruck2();
 	@Override
 	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {
 		for (int i = 0; i < 71; i++) {
-			if (i == 70) {
-				int cargo = ((Freight) entity).getAmmountOfCargo();
+			  if  (bodyModel[i].boxName != null && bodyModel[i].boxName.contains("aaa")) {
+			//if (i == 70) {
+				/*int cargo = ((Freight) entity).getAmmountOfCargo();
 				if (cargo != 0) {
 					if (cargo <= 9) { //less than or equal to 9 (27, 36, 45, 54) //fix this
 						GL11.glPushMatrix();
@@ -360,7 +361,7 @@ public class ModelVersaLongi extends ModelConverter //Same as Filename
 						bodyModel[70].render(f5);
 						GL11.glPopMatrix();
 					}
-				}
+				}*/
 			} else if (bodyModel[i].boxName != null && bodyModel[i].boxName.contains("cull")) {
 				GL11.glDisable(GL11.GL_CULL_FACE);
 				bodyModel[i].render(f5);
@@ -381,5 +382,7 @@ public class ModelVersaLongi extends ModelConverter //Same as Filename
 		GL11.glTranslated(2.5,-0.0,0.00);
 		bogie2.render(entity,f,f1,f2,f3,f4,f5);
 		GL11.glPopMatrix();
+
+		((AbstractTrains) entity).getCargoManager().renderCargo((AbstractTrains) entity, f, f1, f2, f3, f4, f5);
 	}
 }

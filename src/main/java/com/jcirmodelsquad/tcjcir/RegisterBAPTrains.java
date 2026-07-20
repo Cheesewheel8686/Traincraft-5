@@ -4750,6 +4750,16 @@ public class RegisterBAPTrains
                             .setCargoCapacity(45)
             );
 
+            // gunderson fmc woodchip hopper
+            put(ItemIDs.minecartFMCWoodchip.item,
+                    new TrainRecord("FMCWoodchip", FMCWoodchip.class, ItemIDs.minecartFMCWoodchip.item)
+                            .setTrainType(EnumTrainType.OpenTopHopper)
+                            .setMass(3)
+                            .setColors(new String[] {"LightGrey"})
+                            .setGuiRenderScale(14)
+                            .setCargoCapacity(45)
+            );
+
             // OreJenny
             put(ItemIDs.minecartOreJenny.item,
                     new TrainRecord("Ore Jenny", OreJenny.class, ItemIDs.minecartOreJenny.item)
