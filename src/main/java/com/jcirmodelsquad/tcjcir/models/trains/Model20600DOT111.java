@@ -18,6 +18,7 @@ import tmt.ModelConverter;
 import tmt.ModelRendererTurbo;
 import tmt.Tessellator;
 import train.client.renderhelper.ModelRenderHelper;
+import train.common.api.AbstractTrains;
 import train.common.library.Info;
 
 public class Model20600DOT111 extends ModelConverter //Same as Filename
@@ -369,22 +370,21 @@ public class Model20600DOT111 extends ModelConverter //Same as Filename
 		bodyModel[81].addBox(0F, 0F, 0F, 0, 3, 3, 0F); // Box 148
 		bodyModel[81].setRotationPoint(-28.02F, -8F, 2F);
 
-		bodyModel[82].addShapeBox(0F, 0F, 0F, 4, 4, 0, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F); // Box 108
-		bodyModel[82].setRotationPoint(18F, -3F, 11.03F);
+		bodyModel[82].addShapeBox(0F, 0F, 0F, 4, 4, 0, 0F,-0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F); // Box 108
+		bodyModel[82].setRotationPoint(-18F, -3F, 11.03F);
 		bodyModel[82].rotateAngleZ = -0.78539816F;
 
-		bodyModel[83].addShapeBox(0F, 0F, 0F, 4, 4, 0, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F); // Box 108
-		bodyModel[83].setRotationPoint(-18F, -3F, -11.03F);
+		bodyModel[83].addShapeBox(0F, 0F, 0F, 4, 4, 0, 0F,-0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F, -0.5F, -0.5F, 0F); // Box 108
+		bodyModel[83].setRotationPoint(18F, -3F, -11.03F);
 		bodyModel[83].rotateAngleZ = -0.78539816F;
-
-
 
 		translateAll(0F, 0F, 0F);
 
-
 		flipAll();
 	}
+
 	Model70TonTruck2 bogie = new Model70TonTruck2();
+
 	@Override
 	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5)
 	{
@@ -399,7 +399,7 @@ public class Model20600DOT111 extends ModelConverter //Same as Filename
 		GL11.glTranslated(2.25,0,0.00);
 		bogie.render(entity,f,f1,f2,f3,f4,f5);
 		GL11.glPopMatrix();
-	}
 
-	public ModelRendererTurbo Model20600DOT111[];
+		((AbstractTrains) entity).getCargoManager().renderCargo((AbstractTrains) entity, f, f1, f2, f3, f4, f5);
+	}
 }

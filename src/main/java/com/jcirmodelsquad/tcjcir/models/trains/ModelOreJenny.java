@@ -2,7 +2,6 @@
 
 package com.jcirmodelsquad.tcjcir.models.trains; //Path where the model is located
 
-import com.jcirmodelsquad.tcjcir.models.trucks.ModelOreJennyTrucc;
 import com.jcirmodelsquad.tcjcir.models.trucks.ModelOreJennyTruck2;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
@@ -10,6 +9,7 @@ import org.lwjgl.opengl.GL11;
 import tmt.ModelConverter;
 import tmt.ModelRendererTurbo;
 import tmt.Tessellator;
+import train.client.renderhelper.ModelRenderHelper;
 import train.common.api.AbstractTrains;
 import train.common.library.Info;
 
@@ -25,7 +25,6 @@ public class ModelOreJenny extends ModelConverter //Same as Filename
 		initbodyModel_1();
 
 		translateAll(0F, 0F, 0F);
-
 
 		flipAll();
 	}
@@ -181,15 +180,15 @@ public class ModelOreJenny extends ModelConverter //Same as Filename
 		bodyModel[36].addShapeBox(0F, 0F, 0F, 28, 0, 20, 0F,0F, 0F, 0.05F, 0F, 0F, 0.05F, 0F, 0F, 0.05F, 0F, 0F, 0.05F, 0F, 0F, 0.05F, 0F, 0F, 0.05F, 0F, 0F, 0.05F, 0F, 0F, 0.05F); // Box 0 load
 		bodyModel[36].setRotationPoint(-14F, -8.75F, -10F);
 	}
-	ModelOreJennyTrucc trucc = new ModelOreJennyTrucc();
 	ModelOreJennyTruck2 trucc2 = new ModelOreJennyTruck2();
 	@Override
 	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5)
 	{
-		for(int i = 0; i < 37; i++)
+		/*for(int i = 0; i < 37; i++)
 		{
 			bodyModel[i].render(f5);
-		}
+		}*/
+		ModelRenderHelper.renderModelWithStandardFreightRollingStock(bodyModel, entity, f5);
 
 		if(GetColor(entity)==9 || GetColor(entity)==1){
 			Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/Ore_jenny_Truck2.png"));
@@ -203,11 +202,7 @@ public class ModelOreJenny extends ModelConverter //Same as Filename
 		GL11.glTranslated(1.17,-0.0,0.00);
 		trucc2.render(entity,f,f1,f2,f3,f4,f5);
 		GL11.glPopMatrix();
-	}
 
-	public void setRotationAngles(float f, float f1, float f2, float f3, float f4, float f5)
-	{
+		((AbstractTrains) entity).getCargoManager().renderCargo((AbstractTrains) entity, f, f1, f2, f3, f4, f5);
 	}
-
-	public ModelRendererTurbo ModelOreJenny[];
 }
