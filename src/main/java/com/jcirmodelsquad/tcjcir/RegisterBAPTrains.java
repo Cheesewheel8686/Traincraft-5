@@ -6378,8 +6378,8 @@ public class RegisterBAPTrains
             put(ItemIDs.minecartTGVMobile.item,
                     new TrainRecord("TGVmobile", DieselTGVmobile.class, ItemIDs.minecartTGVMobile.item)
                             .setTrainType(EnumTrainType.Diesel)
-                            .setMHP(200)
-                            .setMaxSpeed(350)
+                            .setMHP(20)
+                            .setMaxSpeed(150)
                             .setMass(0)
                             .setFuelConsumption(10)
                             .setHeatingTime(140)
