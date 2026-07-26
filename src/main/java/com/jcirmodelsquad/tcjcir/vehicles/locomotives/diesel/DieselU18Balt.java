@@ -39,6 +39,8 @@ public class DieselU18Balt extends DieselTrain {
         InsertTexture(16, "Seaboard Coast Line");
         InsertTexture(17, "Family Lines (SCL)");
         InsertTexture(18, "Seaboard System");
+        InsertTexture(19, "Guilford System (MEC 401)");
+        InsertTexture(20, "MEC 405");
     }
 
     @Override

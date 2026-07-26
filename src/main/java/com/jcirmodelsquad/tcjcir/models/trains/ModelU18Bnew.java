@@ -1597,7 +1597,7 @@ public class ModelU18Bnew extends ModelConverter //Same as Filename
 			GL11.glTranslated(2.58, 0, 0);
 			theTrucks4.render(entity, f, f1, f2, f3, f4, f5);
 			GL11.glPopMatrix();
-		} else if (GetColor(entity) == 421 || GetColor(entity) == 923){
+		} else if (GetColor(entity) == 8 || GetColor(entity) == 14){
 			Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/blombergB_2_Blac.png"));
 			GL11.glPushMatrix();
 			GL11.glTranslated(-1.28, -0.01, 0);

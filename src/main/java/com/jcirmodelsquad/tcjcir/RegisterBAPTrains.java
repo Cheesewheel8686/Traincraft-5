@@ -2216,7 +2216,7 @@ public class RegisterBAPTrains
                             .setAccelerationRate(0.7)
                             .setBrakeRate(0.88)
                             .setTankCapacity(10000)
-                            .setColors(new String[] {"Brown", "Cyan", "White", "LightGrey", "Skin16", "Skin17", "Skin18", "Lime", "Skin19", "Skin22", "Skin23", "Skin24", "Skin25", "Skin21", "Skin26", "Skin27", "Skin28", "Skin29", "Skin30"})
+                            .setColors(new String[] {"Brown", "Cyan", "White", "LightGrey", "Skin16", "Skin17", "Skin18", "Lime", "Skin19", "Skin22", "Skin23", "Skin24", "Skin25", "Skin21", "Skin26", "Skin27", "Skin28", "Skin29", "Skin30", "Grey", "Orange"})
                             .setGuiRenderScale(16)
                             .setBogieLocoPosition(-2.6)
             );
