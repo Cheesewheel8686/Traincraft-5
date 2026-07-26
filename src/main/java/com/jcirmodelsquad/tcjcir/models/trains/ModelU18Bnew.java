@@ -30,7 +30,7 @@ public class ModelU18Bnew extends ModelConverter //Same as Filename
 
 	public ModelU18Bnew() //Same as Filename
 	{
-		bodyModel = new ModelRendererTurbo[373];
+		bodyModel = new ModelRendererTurbo[377];
 
 		initbodyModel_1();
 
@@ -415,6 +415,10 @@ public class ModelU18Bnew extends ModelConverter //Same as Filename
 		bodyModel[370] = new ModelRendererTurbo(this, 124, 171, textureX, textureY); // Box 440 honse
 		bodyModel[371] = new ModelRendererTurbo(this, 210, 43, textureX, textureY); // Box 371
 		bodyModel[372] = new ModelRendererTurbo(this, 210, 55, textureX, textureY); // Box 372
+		bodyModel[373] = new ModelRendererTurbo(this, 77, 196, textureX, textureY); // Box 205 footplate
+		bodyModel[374] = new ModelRendererTurbo(this, 104, 196, textureX, textureY, "cull"); // Box 374 cull footplate traingle
+		bodyModel[375] = new ModelRendererTurbo(this, 99, 196, textureX, textureY); // Box 205 footplate
+		bodyModel[376] = new ModelRendererTurbo(this, 104, 202, textureX, textureY, "cull"); // Box 374 cull footplate traingle
 
 		bodyModel[0].addBox(0F, 0F, 0F, 4, 2, 3, 0F); // Box 61
 		bodyModel[0].setRotationPoint(-41F, 3F, -1.5F);
@@ -1560,6 +1564,18 @@ public class ModelU18Bnew extends ModelConverter //Same as Filename
 
 		bodyModel[372].addBox(0F, 0F, 0F, 2, 1, 1, 0F); // Box 372
 		bodyModel[372].setRotationPoint(-12F, -22.5F, -2.5F);
+
+		bodyModel[373].addShapeBox(0F, 0F, 0F, 3, 0, 20, 0F,-0.5F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, -0.5F, 0F, 0F, -0.5F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, -0.5F, 0F, 0F); // Box 205 footplate
+		bodyModel[373].setRotationPoint(-40F, 8F, -10F);
+
+		bodyModel[374].addShapeBox(0F, 0F, 0F, 3, 1, 4, 0F,-0.5F, -1F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, -0.5F, -1F, 0F, -0.5F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, -0.5F, 0F, 0F); // Box 374 cull footplate traingle
+		bodyModel[374].setRotationPoint(-40F, 7F, -2F);
+
+		bodyModel[375].addShapeBox(0F, 0F, 0F, 3, 0, 20, 0F,0F, 0F, 0F, -0.5F, 0F, 0F, -0.5F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, -0.5F, 0F, 0F, -0.5F, 0F, 0F, 0F, 0F, 0F); // Box 205 footplate
+		bodyModel[375].setRotationPoint(37F, 8F, -10F);
+
+		bodyModel[376].addShapeBox(0F, 0F, 0F, 3, 1, 4, 0F,0F, 0F, 0F, -0.5F, -1F, 0F, -0.5F, -1F, 0F, 0F, 0F, 0F, 0F, 0F, 0F, -0.5F, 0F, 0F, -0.5F, 0F, 0F, 0F, 0F, 0F); // Box 374 cull footplate traingle
+		bodyModel[376].setRotationPoint(37F, 7F, -2F);
 	}
 	ModelFB2_new theTrucks2 = new ModelFB2_new();
 	ModelBlombergBnew theTrucks3 = new ModelBlombergBnew();
@@ -1588,7 +1604,7 @@ public class ModelU18Bnew extends ModelConverter //Same as Filename
 			GL11.glTranslated(2.58, 0, 0);
 			theTrucks4.render(entity, f, f1, f2, f3, f4, f5);
 			GL11.glPopMatrix();
-		} else if (GetColor(entity) == 3 ||GetColor(entity) == 18){
+		} else if (GetColor(entity) == 3 ||GetColor(entity) == 18 ||GetColor(entity) == 0){
 			Tessellator.bindTexture(new ResourceLocation(Info.resourceLocation, "textures/trains/TypeB_2_Black.png"));
 			GL11.glPushMatrix();
 			GL11.glTranslated(-1.28, -0.025, 0);

@@ -2168,6 +2168,7 @@ public class RegisterBAPTrains
                             .setColors(new String[] {"Orange","Skin16", "Red", "Skin17", "LightGrey", "Pink", "Magenta", "Purple", "Lime", "Yellow", "Grey", "Skin18", "Skin19", "Black", "Skin20", "Skin22", "Brown", "LightBlue", "Blue", "Skin23", "Skin24", "Skin25", "Skin26"})
                             .setGuiRenderScale(16)
                             .setBogieLocoPosition(-2.5)
+                            .setAdditionalTooltip(new String[] {"SOON TO BE REMOVED"})
             );
 
             // U18BB
@@ -2216,7 +2217,7 @@ public class RegisterBAPTrains
                             .setAccelerationRate(0.7)
                             .setBrakeRate(0.88)
                             .setTankCapacity(10000)
-                            .setColors(new String[] {"Brown", "Cyan", "White", "LightGrey", "Skin16", "Skin17", "Skin18", "Lime", "Skin19", "Skin22", "Skin23", "Skin24", "Skin25", "Skin21", "Skin26", "Skin27", "Skin28", "Skin29", "Skin30", "Grey", "Orange"})
+                            .setColors(new String[] {"Brown", "Cyan", "White", "LightGrey", "Skin16", "Skin17", "Skin18", "Lime", "Skin19", "Skin22", "Skin23", "Skin24", "Skin25", "Skin21", "Skin26", "Skin27", "Skin28", "Skin29", "Skin30", "Grey", "Orange", "Black"})
                             .setGuiRenderScale(16)
                             .setBogieLocoPosition(-2.6)
             );

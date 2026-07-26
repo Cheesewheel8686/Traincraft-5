@@ -41,6 +41,7 @@ public class DieselU18Balt extends DieselTrain {
         InsertTexture(18, "Seaboard System");
         InsertTexture(19, "Guilford System (MEC 401)");
         InsertTexture(20, "MEC 405");
+        InsertTexture(21, "Texas Utilities (RCO Gear)");
     }
 
     @Override
@@ -62,7 +63,7 @@ public class DieselU18Balt extends DieselTrain {
 
     @Override
     public String getInventoryName() {
-        return "GE U18B (New Model)";
+        return "GE U18B";
     }
 
 }

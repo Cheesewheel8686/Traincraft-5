@@ -1128,11 +1128,11 @@ item.tc:minecart44Ton.name=GE 44-Ton
 item.tc:minecartBoxcab23Ton.name=GE 23-Ton Boxcab
 item.tc:minecart25Ton.name=GE 25-Ton
 
-item.tc:minecartU18B.name=GE U18B (Old Model)
+item.tc:minecartU18B.name=GE U18B (Old Model SOON TO BE REMOVED)
 item.tc:minecartU18BB.name=GE U18B B-Unit
 item.tc:minecartU18BW.name=CEE/GE U18B(W)
 item.tc:minecartU18BWH.name=CEE U18B(W)H
-item.tc:minecartU18Balt.name=GE U18B (Temp. New Model)
+item.tc:minecartU18Balt.name=GE U18B
 item.tc:minecartU23B.name=GE U23B
 item.tc:minecartU23BU.name=CEE U23B(U)
 item.tc:minecartU23BW.name=CEE U23B(W)

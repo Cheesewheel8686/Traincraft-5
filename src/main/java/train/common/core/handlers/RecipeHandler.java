@@ -804,6 +804,8 @@ public class RecipeHandler extends AbstractRecipeHandler
 		TrainCraftingManager.instance.addRecipe(new ItemStack(ItemIDs.minecartH24_66L.item, 1),  "   ", " R ", "   ", 'R', new ItemStack(ItemIDs.minecartH24_66.item));
 		TrainCraftingManager.instance.addRecipe(new ItemStack(ItemIDs.minecartH24_66C.item, 1),  "   ", " R ", "   ", 'R', new ItemStack(ItemIDs.minecartH24_66L.item));
 		TrainCraftingManager.instance.addRecipe(new ItemStack(ItemIDs.minecartH24_66.item, 1),  "   ", " R ", "   ", 'R', new ItemStack(ItemIDs.minecartH24_66C.item));
+		//old model u18b to new model u18b
+		TrainCraftingManager.instance.addRecipe(new ItemStack(ItemIDs.minecartU18Balt.item, 1),  "   ", " R ", "   ", 'R', new ItemStack(ItemIDs.minecartU18B.item));
 	}
 	
 	public void initSmeltingRecipes(){
